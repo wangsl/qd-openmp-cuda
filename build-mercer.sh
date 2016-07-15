@@ -106,7 +106,7 @@ function main()
     prepend_to_env_variable INCLUDE_FLAGS "$CPPFLAGS"
     prepend_to_env_variable LINK_FLAGS "$LDFLAGS"
     
-    export LINK_FLAGS_FOR_INTEL_COMPILERS="-static-intel"  #"-shared-intel"
+    export LINK_FLAGS_FOR_INTEL_COMPILERS="-shared-intel"
     export EXTRA_LINK_FLAGS="$(LD_LIBRARY_PATH_to_rpath)"
     
     #export INCLUDE_FLAGS=

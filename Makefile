@@ -99,4 +99,9 @@ depend :
 	$(CXX) $(CXXFLAGS) -MM *.[cC] | perl dep.pl > $@
 	$(NVCC) $(CXXFLAGS) -M *.cu | perl dep.pl >> $@
 
+ifneq ($(MAKECMDGOALS), clean)
 include depend
+endif
+
+
+
