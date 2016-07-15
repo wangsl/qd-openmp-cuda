@@ -11,8 +11,9 @@ while(<>) {
     s/\/usr\S*\.h//g; 
     s# /usr/include/\S*##g;
     s# /usr/lib/\S*##g;
-    s/\/share\/apps\S*\.hpp//g; 
-    s/\/share\/apps\S*\.h//g; 
+    #s/\/share\/apps\S*\.hpp//g; 
+    #s/\/share\/apps\S*\.h//g; 
+    s#/share/apps/\S*##g;
     #s/\w*\.cu//g;
     #s/\w*\.[Cc]//g;
     if (/\\$/) {
