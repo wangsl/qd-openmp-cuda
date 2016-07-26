@@ -30,14 +30,22 @@ public:
   const double &wavepacket_module() const  { return _wavepacket_module; }
   const double &potential_energy() const { return _potential_energy; }
 
+  const double &wavepacket_module_for_legendre_psi() const      
+  { return _wavepacket_module_for_legendre_psi; }
+
   void calculate_wavepacket_module();
   void calculate_potential_energy();
+  
+  void calculate_wavepacket_module_for_legendre_psi();
   
   void forward_legendre_transform();
   void backward_legendre_transform();
   
   void forward_fft_for_legendre_psi();
   void backward_fft_for_legendre_psi(const int do_scale = 0);
+
+  void copy_psi_from_host_to_device();
+  void copy_psi_from_device_to_host();
   
 private:
   
@@ -64,6 +72,8 @@ private:
 
   double _wavepacket_module;
   double _potential_energy;
+
+  double _wavepacket_module_for_legendre_psi;
 
   void setup_device_data();
   void setup_associated_legendres();

@@ -28,11 +28,19 @@ public:
   void calculate_omega_wavepacket_modules();
   void calculate_omega_wavepacket_potential_energy();
 
+  void calculate_wavepacket_module_for_legendre_psi();
+
   void forward_legendre_transform();
   void backward_legendre_transform();
 
   void forward_fft_for_legendre_psi();
   void backward_fft_for_legendre_psi(const int do_scale);
+
+  void copy_psi_from_device_to_host();
+
+  void copy_coriolis_matrices_to_device(const double *c, const int s);
+
+  void setup_constant_memory_on_device();
 
 private:
 
@@ -52,6 +60,9 @@ private:
   double *pot_dev;
   
   Complex *work_dev;
+
+  double *coriolis_matrices_dev;
+  Vec<int> coriolis_matrices_index;
   
   cublasHandle_t cublas_handle;
   int has_cublas_handle;

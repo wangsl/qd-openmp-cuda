@@ -19,4 +19,5 @@ CudaOpenMPQMMD::~CudaOpenMPQMMD()
 {
   pot = 0;
   destroy_wavepackets_on_single_device();
+  reset_devices();
 }

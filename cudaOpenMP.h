@@ -9,6 +9,7 @@
 
 #include "matlabStructures.h"
 #include "wavepackets1device.h"
+#include "evolutionUtils.h"
 
 class CudaOpenMPQMMD
 {
@@ -27,7 +28,9 @@ public:
   void test();
 
   Vec<OmegaWavepacketsOnSingleDevice *> omega_wavepackets_on_single_device;
-		 
+
+  Vec<CoriolisMatrix> coriolis_matrices;
+
 private:
   
   int _n_gpus;
@@ -38,7 +41,7 @@ private:
   const AngleCoordinate &theta;
   OmegaStates &omegas;
   EvolutionTime &time;
-
+  
   void setup_n_gpus();
 
   void setup_wavepackets_on_single_device();
@@ -46,6 +49,12 @@ private:
 
   void devices_synchronize();
   void devices_memory_usage() const;
+
+  void setup_coriolis_matrices_and_copy_to_device();
+
+  void setup_constant_memory_on_device();
+
+  void reset_devices();
 };
 
 #endif /* CUDA_OPENMP_H */

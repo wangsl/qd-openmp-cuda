@@ -2,8 +2,14 @@
 #include <helper_cuda.h>
 #include "cudaUtils.h"
 #include "wavepackets1device.h"
+#include "evolutionUtils.h"
 
-__constant__ double gauss_legendre_weight_dev [512];
+//__constant__ double gauss_legendre_weight_dev [512];
+
+// defined as extern in evolutionUtils.h
+
+__constant__ EvoltionUtils::RadialCoordinate r1_dev;
+__constant__ EvoltionUtils::RadialCoordinate r2_dev;
 
 OmegaWavepacketsOnSingleDevice::OmegaWavepacketsOnSingleDevice(const int device_index_,
 							       const int omega_start_index_,
@@ -23,6 +29,7 @@ OmegaWavepacketsOnSingleDevice::OmegaWavepacketsOnSingleDevice(const int device_
   l_max(l_max_),
   pot_dev(0),
   work_dev(0),
+  coriolis_matrices_dev(0),
   has_cublas_handle(0),
   has_cufft_plan_for_legendre_psi(0)
 {
@@ -87,6 +94,7 @@ void OmegaWavepacketsOnSingleDevice::destroy_data_on_device()
   
   _CUDA_FREE_(pot_dev);
   _CUDA_FREE_(work_dev);
+  _CUDA_FREE_(coriolis_matrices_dev);
 
   for(int i = 0; i < omega_wavepackets.size(); i++) {
     if(omega_wavepackets[i]) { 
@@ -177,6 +185,14 @@ void OmegaWavepacketsOnSingleDevice::calculate_omega_wavepacket_potential_energy
     omega_wavepackets[i]->calculate_potential_energy();
 }
 
+void OmegaWavepacketsOnSingleDevice::calculate_wavepacket_module_for_legendre_psi()
+{
+  setup_device();
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->calculate_wavepacket_module_for_legendre_psi();
+}
+
 void OmegaWavepacketsOnSingleDevice::setup_cufft_plan_for_legendre_psi()
 {
   if(has_cufft_plan_for_legendre_psi) return;
@@ -233,4 +249,35 @@ void OmegaWavepacketsOnSingleDevice::backward_fft_for_legendre_psi(const int do_
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->backward_fft_for_legendre_psi(do_scale);
+}
+
+void OmegaWavepacketsOnSingleDevice::copy_psi_from_device_to_host()
+{
+  setup_device();
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->copy_psi_from_device_to_host();
+}
+
+void OmegaWavepacketsOnSingleDevice::copy_coriolis_matrices_to_device(const double *c, const int s)
+{
+  setup_device();
+
+  insist(!coriolis_matrices_dev);
+
+  checkCudaErrors(cudaMalloc(&coriolis_matrices_dev, s*sizeof(double)));
+  insist(coriolis_matrices_dev);
+  
+  checkCudaErrors(cudaMemcpyAsync(coriolis_matrices_dev, c, s*sizeof(double), cudaMemcpyHostToDevice));
+}
+
+void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device()
+{
+  setup_device();
+
+  EvoltionUtils::copy_radial_coordinate_to_device(r1_dev, r1.left, r1.dr, r1.mass,
+						  r1.dump_Cd, r1.dump_xd, r1.n);
+
+  EvoltionUtils::copy_radial_coordinate_to_device(r2_dev, r2.left, r2.dr, r2.mass, 
+						  r2.dump_Cd, r2.dump_xd, r2.n);
 }

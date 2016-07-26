@@ -22,7 +22,7 @@ setenv('HSW_DATA_DIR', ...
 global H2eV 
 global FH2Data
 
-theta.n = int32(220);
+theta.n = int32(240);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
 J = 15;
@@ -42,10 +42,10 @@ for i = 1 : numel(Omegas)
 end
 
 OmegaStates.J = int32(J);
-OmegaStates.parity = int32(1);
-OmegaStates.n_omegas_max = int32(numel(Omegas));
+OmegaStates.parity = int32(p);
 OmegaStates.l_max = int32(LMax);
 OmegaStates.omegas = int32(Omegas);
+OmegaStates.n_omegas_max = int32(numel(Omegas));
 OmegaStates.associated_legendres = P;
 
 jRot = 0;
@@ -71,7 +71,7 @@ time.steps = int32(0);
 % r1: R
 
 %r1.n = int32(1024);
-r1.n = int32(864);
+r1.n = int32(768);
 r1.r = linspace(0.2, 14.0, r1.n);
 r1.left = r1.r(1);
 r1.dr = r1.r(2) - r1.r(1);
@@ -94,7 +94,7 @@ dump1.xd = 12.0;
 % r2: r
 
 %r2.n = int32(1024);
-r2.n = int32(768);
+r2.n = int32(512);
 r2.r = linspace(0.3, 12.0, r2.n);
 r2.left = r2.r(1);
 r2.dr = r2.r(2) - r2.r(1);

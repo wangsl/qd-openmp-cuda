@@ -29,8 +29,10 @@ OmegaWavepacket::OmegaWavepacket(const int &omega_,
   cufft_plan_for_legendre_psi(cufft_plan_for_legendre_psi_),
   work_dev(work_dev_),
   _wavepacket_module(0),
-  _potential_energy(0)
+  _potential_energy(0),
+  _wavepacket_module_for_legendre_psi(0)
 { 
+  insist(psi);
   insist(work_dev);
   setup_device_data();
 }
@@ -49,20 +51,9 @@ OmegaWavepacket::~OmegaWavepacket()
 
 void OmegaWavepacket::setup_device_data()
 {
-  if(psi_dev) return;
-
   std::cout << " Setup OmegaWavepacket: omega = " << omega << " " << work_dev << " " << l_max << std::endl;
   
-  insist(psi);
-  
-  const int &n1 = r1.n;
-  const int &n2 = r2.n;
-  const int &n_theta = theta.n;
-
-  checkCudaErrors(cudaMalloc(&psi_dev, n1*n2*n_theta*sizeof(Complex)));
-  insist(psi_dev);
-  checkCudaErrors(cudaMemcpyAsync(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), cudaMemcpyHostToDevice));
-
+  copy_psi_from_host_to_device();
   setup_associated_legendres();
   setup_weighted_associated_legendres();
   setup_legendre_psi();
@@ -285,4 +276,46 @@ void OmegaWavepacket::backward_fft_for_legendre_psi(const int do_scale)
     insist(cublasZdscal(cublas_handle, n1*n2*n_legs, &s, (cuDoubleComplex *) legendre_psi_dev, 1) 
            == CUBLAS_STATUS_SUCCESS);
   }
+}
+
+void OmegaWavepacket::copy_psi_from_device_to_host()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int &n_theta = theta.n;
+  
+  insist(psi && psi_dev);
+  checkCudaErrors(cudaMemcpyAsync(psi, psi_dev, n1*n2*n_theta*sizeof(Complex), cudaMemcpyDeviceToHost));
+}
+
+void OmegaWavepacket::copy_psi_from_host_to_device()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int &n_theta = theta.n;
+  
+  if(!psi_dev) 
+    checkCudaErrors(cudaMalloc(&psi_dev, n1*n2*n_theta*sizeof(Complex)));
+
+  insist(psi_dev);
+  checkCudaErrors(cudaMemcpyAsync(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), cudaMemcpyHostToDevice));
+}
+
+
+void OmegaWavepacket::calculate_wavepacket_module_for_legendre_psi()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int n_legs = l_max - omega + 1;
+
+  const Complex *legendre_psi_dev_ = legendre_psi_dev + omega*n1*n2;
+  
+  Complex s(0.0, 0.0);
+
+  insist(cublasZdotc(cublas_handle, n1*n2*n_legs,
+		     (const cuDoubleComplex *) legendre_psi_dev_, 1, 
+		     (const cuDoubleComplex *) legendre_psi_dev_, 1,
+		     (cuDoubleComplex *) &s) == CUBLAS_STATUS_SUCCESS);
+  
+  _wavepacket_module_for_legendre_psi = s.real()*r1.dr*r2.dr;
 }

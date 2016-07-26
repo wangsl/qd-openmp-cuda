@@ -42,7 +42,7 @@ CXXFLAGS = -std=c++11 $(NVCCINCLUDE)
 
 Link = $(CXX)
 
-LIBS = -lifcoremt -lgomp -L$(CUDA_LIB) -lcufft -lcublas -lcudart
+LIBS = -lifcoremt -lgomp -L$(CUDA_LIB) -lcufft -lcublas -lcudart -lmkl_rt
 
 MEXA64Files = $(O)/cudaOpenMPEvolution.mexa64
 
@@ -54,7 +54,7 @@ OBJS = $(O)/cudaOpenMPEvolution.o \
 	$(O)/cudaUtils.o $(O)/matlabUtils.o  $(O)/matlabStructures.o  \
 	$(O)/matlabStructuresio.o  $(O)/rmatalgo.o  $(O)/rmato.o  \
 	$(O)/die.o  $(O)/indent.o  $(O)/out.o \
-	$(O)/cudaOpenMP.o \
+	$(O)/cudaOpenMP.o  $(O)/CoriolisMatrix.o \
 	$(CUDAObjs) $(CUDALinkObj)
 
 QMLibs = $(O)/libqmdyn.a
