@@ -95,9 +95,13 @@ OmegaStates::OmegaStates(const mxArray *mx) :
   l_max(*(int *) mxGetData(mx, "l_max")),
   n_omegas_max(*(int *) mxGetData(mx, "n_omegas_max"))
 {
+  int n1 = 0;
+  int n2 = 0;
+  int n3 = 0;
+
   const mxArray *omegas_ptr = mxGetField(mx, 0, "omegas");
   insist(omegas_ptr);
-  
+
   const MatlabArray<int> omegas_(omegas_ptr);
   const size_t *dims_ = omegas_.dims();
   omegas = Vec<int>(dims_[0]*dims_[1], omegas_.data);
@@ -106,30 +110,40 @@ OmegaStates::OmegaStates(const mxArray *mx) :
 
   const mxArray *assL_ptr = mxGetField(mx, 0, "associated_legendres");
   insist(assL_ptr);
-
+  
   const MatlabArray<double> ass_leg(assL_ptr);
   dims_ = ass_leg.dims();
+  
+  insist(ass_leg.n_dims() == 2 || ass_leg.n_dims() == 3);
+  
+  n1 = dims_[0];
+  n2 = dims_[1];
+  n3 = ass_leg.n_dims() == 3 ? dims_[2] : 1;
 
-  associated_legendres.resize(dims_[2]);
+  associated_legendres.resize(n3);
   
   const double *p = ass_leg.data;
-  for(int i = 0; i < dims_[2]; i++) {
-    associated_legendres[i] = RMat(dims_[0], dims_[1]-i, const_cast<double *>(p));
-    p += dims_[0]*dims_[1];
+  for(int i = 0; i < n3; i++) {
+    associated_legendres[i] = RMat(n1, n2-i, const_cast<double *>(p));
+    p += n1*n2;
   }
-
+  
   const mxArray *wp_ptr = mxGetField(mx, 0, "wave_packets");
   insist(wp_ptr);
-
+  
   const MatlabArray<Complex> wp(wp_ptr);
   dims_ = wp.dims();
-
-  wave_packets.resize(dims_[3]);
   
-  const size_t size = dims_[0]*dims_[1]*dims_[2]/2;
-  insist(2*size ==  dims_[0]*dims_[1]*dims_[2]);
+  n1 = dims_[0];
+  n2 = dims_[1];
+  n3 = ass_leg.n_dims() == 3 ? dims_[2] : 1;
+  
+  wave_packets.resize(n3);
+  
+  const size_t size = n1*n2*n3/2;
+  insist(2*size ==  n1*n2*n3);
   const Complex *c_p = wp.data;
-  for(int i = 0; i < dims_[3]; i++) {
+  for(int i = 0; i < n3; i++) {
     wave_packets[i] = Vec<Complex>(size, const_cast<Complex *>(c_p));
     c_p += size;
   }

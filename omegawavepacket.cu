@@ -28,8 +28,8 @@ OmegaWavepacket::OmegaWavepacket(const int &omega_,
   cublas_handle(cublas_handle_),
   cufft_plan_for_legendre_psi(cufft_plan_for_legendre_psi_),
   work_dev(work_dev_),
-  _wavepacket_module(0),
-  _potential_energy(0),
+  _wavepacket_module(0), _potential_energy(0), _kinetic_energy(0), 
+  _rotational_energy(0), _coriolis_energy(0),
   _wavepacket_module_for_legendre_psi(0)
 { 
   insist(psi);
@@ -51,7 +51,7 @@ OmegaWavepacket::~OmegaWavepacket()
 
 void OmegaWavepacket::setup_device_data()
 {
-  std::cout << " Setup OmegaWavepacket: omega = " << omega << " " << work_dev << " " << l_max << std::endl;
+  std::cout << " Setup OmegaWavepacket: omega = " << omega << " l_max = "<< l_max << std::endl;
   
   copy_psi_from_host_to_device();
   setup_associated_legendres();
@@ -123,7 +123,7 @@ void OmegaWavepacket::calculate_potential_energy()
   double &sum = _potential_energy;
   sum = 0.0;
   for(int k = 0; k < n_theta; k++) {
-
+    
     const cuDoubleComplex *psi_ = (cuDoubleComplex *) (psi_dev + k*n1*n2);
     
     cudaMath::_vector_multiplication_<Complex, Complex, double><<<n_blocks, n_threads>>>
@@ -318,4 +318,112 @@ void OmegaWavepacket::calculate_wavepacket_module_for_legendre_psi()
 		     (cuDoubleComplex *) &s) == CUBLAS_STATUS_SUCCESS);
   
   _wavepacket_module_for_legendre_psi = s.real()*r1.dr*r2.dr;
+}
+
+void OmegaWavepacket::evolution_with_potential(const double dt)
+{
+  insist(pot_dev && psi_dev);
+
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int &n_theta = theta.n;
+  const int n = n1*n2*n_theta;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n);
+  
+  _evolution_with_potential_<<<n_blocks, n_threads>>>(psi_dev, pot_dev, n, dt);
+}
+
+void OmegaWavepacket::evolution_with_kinetic(const double dt)
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int n_legs = l_max + 1;
+
+  const int n = n1*n2*n_legs;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n);
+  
+  _evolution_with_kinetic_<<<n_blocks, n_threads, (n1+n2)*sizeof(double)>>>(legendre_psi_dev, n1, n2, n_legs, dt);
+}
+
+void OmegaWavepacket::evolution_with_rotational(const double dt)
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int n_legs = l_max + 1;
+  
+  const int n = n1*n2*n_legs;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n);
+  
+  _evolution_with_rotational_<<<n_blocks, n_threads, (n1+n2)*sizeof(double)>>>(legendre_psi_dev, n1, n2, n_legs, dt);
+
+}
+
+void OmegaWavepacket::calculate_kinetic_energy_for_legendre_psi()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int n_legs = l_max + 1;
+  
+  insist(work_dev);
+  cuDoubleComplex *psi_tmp_dev = (cuDoubleComplex *) work_dev;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2);
+  
+  double sum = 0.0;
+  for(int l = 0; l < n_legs; l++) {
+    const cuDoubleComplex *legendre_psi_in_dev = (cuDoubleComplex *) legendre_psi_dev + l*n1*n2;
+    
+    _psi_times_kinitic_energy_<<<n_blocks, n_threads, (n1+n2)*sizeof(double)>>>
+      ((Complex *) psi_tmp_dev, (const Complex *) legendre_psi_in_dev, n1, n2);
+    
+    Complex dot(0.0, 0.0);
+    insist(cublasZdotc(cublas_handle, n1*n2, legendre_psi_in_dev, 1, psi_tmp_dev, 1, 
+                       (cuDoubleComplex *) &dot) == CUBLAS_STATUS_SUCCESS);
+    
+    sum += dot.real();
+  }
+  
+  sum *= r1.dr*r2.dr/n1/n2;
+
+  _kinetic_energy = sum;
+}
+
+void OmegaWavepacket::calculate_rotational_energy_for_legendre_psi()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int n_legs = l_max + 1;
+  
+  insist(work_dev);
+  cuDoubleComplex *psi_tmp_dev = (cuDoubleComplex *) work_dev;
+
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2);
+  
+  double sum = 0.0;
+  for(int l = 0; l < n_legs; l++) {
+    const cuDoubleComplex *legendre_psi_in_dev = (cuDoubleComplex *) legendre_psi_dev + l*n1*n2;
+    
+    _psi_times_moments_of_inertia_<<<n_blocks, n_threads, (n1+n2)*sizeof(double)>>>
+      ((Complex *) psi_tmp_dev, (const Complex *) legendre_psi_in_dev, n1, n2);
+    
+    checkCudaErrors(cudaDeviceSynchronize());
+    
+    Complex dot(0.0, 0.0);
+    insist(cublasZdotc(cublas_handle, n1*n2, legendre_psi_in_dev, 1, psi_tmp_dev, 1, 
+                       (cuDoubleComplex *) &dot) == CUBLAS_STATUS_SUCCESS);
+    
+    sum += l*(l+1)*dot.real();
+  }
+
+  sum *= r1.dr*r2.dr;
+
+  _rotational_energy = sum;
 }

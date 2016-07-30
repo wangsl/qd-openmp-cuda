@@ -28,15 +28,26 @@ void CudaOpenMPQMMD::setup_n_gpus()
 
 void CudaOpenMPQMMD::test()
 {
+  insist(n_gpus() == 1);
+
+  std::cout << time << std::endl;
 
   for(int L = 0; L < time.total_steps; L++) {
  
     std::cout << std::endl << " L: " << L << ", " << time_now() << std::endl;
+
+    omega_wavepackets_on_single_device[0]->evolution_test(L, time.time_step);
+
+#if 0
     
     omp_set_num_threads(n_gpus());
     
 #pragma omp parallel for default(shared)
     for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
+
+      omega_wavepackets_on_single_device[i_dev]->evolution_with_potential(1.0);
+      omega_wavepackets_on_single_device[i_dev]->evolution_with_potential(-1.0);
+
       omega_wavepackets_on_single_device[i_dev]->calculate_omega_wavepacket_modules();
       omega_wavepackets_on_single_device[i_dev]->calculate_omega_wavepacket_potential_energy();
       omega_wavepackets_on_single_device[i_dev]->forward_legendre_transform();
@@ -48,7 +59,6 @@ void CudaOpenMPQMMD::test()
 
       omega_wavepackets_on_single_device[i_dev]->backward_legendre_transform();
 
-      //omega_wavepackets_on_single_device[i_dev]->copy_psi_from_device_to_host();
     }
 
     devices_synchronize();
@@ -67,6 +77,8 @@ void CudaOpenMPQMMD::test()
     }
 
     std::cout.flags(old_flags);
+#endif
+
   }
 }
 
@@ -82,6 +94,7 @@ void CudaOpenMPQMMD::setup_wavepackets_on_single_device()
   Vec<int> omegas_index(n_gpus());
   divide_into_chunks(omegas.omegas.size(), n, omegas_index);
   
+  std::cout << " Omegas index: ";
   omegas_index.show_in_one_line();
 
   int omega_start_index = 0;

@@ -16,9 +16,7 @@
 
 #include "evolutionUtils.h"
 
-void omegas_test_3(OmegaStates &omegas);
-void omegas_test_4(OmegaStates &omegas);
-void omegas_test_5(OmegaStates &omegas);
+void omegas_test(OmegaStates &omegas);
 
 void mexFunction(int nlhs, mxArray *plhs[],
 		 int nrhs, const mxArray *prhs[])
@@ -76,23 +74,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
   insist(mxPtr);
   OmegaStates omegas(mxPtr);
 
-  std::cout << omegas << std::endl;
-
-  omegas_test_4(omegas);
-  omegas_test_5(omegas);
-
-#if 0
-  for(int j = omegas.omegas[0]; j < omegas.l_max; j++) {
-    RMat cor_mat;
-    setup_coriolis_matrix(omegas.J, omegas.parity, j, cor_mat);
-    std::cout << cor_mat << std::endl;
-  }
-#endif
-  
-#if 0
   CudaOpenMPQMMD evolCUDA(pot.data, r1, r2, theta, omegas, time);
   evolCUDA.test();
-#endif
  
   std::cout.flush();
   std::cout.precision(np);

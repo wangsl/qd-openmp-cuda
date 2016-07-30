@@ -46,7 +46,8 @@ LIBS = -lifcoremt -lgomp -L$(CUDA_LIB) -lcufft -lcublas -lcudart -lmkl_rt
 
 MEXA64Files = $(O)/cudaOpenMPEvolution.mexa64
 
-CUDAObjs = $(O)/cudaTest.o  $(O)/simpleP2P.o  $(O)/omegawavepacket.o  $(O)/cudaOpenMP2.o  $(O)/wavepackets1device.o
+CUDAObjs = $(O)/cudaTest.o  $(O)/simpleP2P.o  $(O)/omegawavepacket.o  \
+	$(O)/cudaOpenMP2.o  $(O)/wavepackets1device.o
 
 CUDALinkObj = $(O)/cudalink.o
 

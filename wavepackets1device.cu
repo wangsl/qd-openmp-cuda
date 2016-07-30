@@ -4,8 +4,6 @@
 #include "wavepackets1device.h"
 #include "evolutionUtils.h"
 
-//__constant__ double gauss_legendre_weight_dev [512];
-
 // defined as extern in evolutionUtils.h
 
 __constant__ EvoltionUtils::RadialCoordinate r1_dev;
@@ -38,8 +36,6 @@ OmegaWavepacketsOnSingleDevice::OmegaWavepacketsOnSingleDevice(const int device_
 
 OmegaWavepacketsOnSingleDevice::~OmegaWavepacketsOnSingleDevice()
 {
-  //pot = 0;
-  
   for(int i = 0; i < omega_wavepackets.size(); i++) {
     if(omega_wavepackets[i]) { delete omega_wavepackets[i]; omega_wavepackets[i] = 0; }
   }
@@ -80,9 +76,7 @@ void OmegaWavepacketsOnSingleDevice::setup_data_on_device()
   }
   
   setup_potential_on_device();
-
   setup_omega_wavepackets();
-  
   setup_cublas_handle();
 }
 
@@ -169,7 +163,7 @@ void OmegaWavepacketsOnSingleDevice::setup_constant_data_on_device()
 #endif
 }
 
-void OmegaWavepacketsOnSingleDevice::calculate_omega_wavepacket_modules()
+void OmegaWavepacketsOnSingleDevice::calculate_wavepacket_modules()
 {
   setup_device();
   const int &n_omegas = omega_wavepackets.size();
@@ -177,7 +171,7 @@ void OmegaWavepacketsOnSingleDevice::calculate_omega_wavepacket_modules()
     omega_wavepackets[i]->calculate_wavepacket_module();
 }
 
-void OmegaWavepacketsOnSingleDevice::calculate_omega_wavepacket_potential_energy()
+void OmegaWavepacketsOnSingleDevice::calculate_wavepacket_potential_energies()
 {
   setup_device();
   const int &n_omegas = omega_wavepackets.size();
@@ -185,7 +179,7 @@ void OmegaWavepacketsOnSingleDevice::calculate_omega_wavepacket_potential_energy
     omega_wavepackets[i]->calculate_potential_energy();
 }
 
-void OmegaWavepacketsOnSingleDevice::calculate_wavepacket_module_for_legendre_psi()
+void OmegaWavepacketsOnSingleDevice::calculate_wavepacket_modules_for_legendre_psi()
 {
   setup_device();
   const int &n_omegas = omega_wavepackets.size();
@@ -272,7 +266,7 @@ void OmegaWavepacketsOnSingleDevice::copy_coriolis_matrices_to_device(const doub
 }
 
 void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device()
-{
+{void evolution_with_potential(const double dt);
   setup_device();
 
   EvoltionUtils::copy_radial_coordinate_to_device(r1_dev, r1.left, r1.dr, r1.mass,
@@ -280,4 +274,85 @@ void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device()
 
   EvoltionUtils::copy_radial_coordinate_to_device(r2_dev, r2.left, r2.dr, r2.mass, 
 						  r2.dump_Cd, r2.dump_xd, r2.n);
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_potential(const double dt)
+{
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->evolution_with_potential(dt);
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_kinetic(const double dt)
+{
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->evolution_with_kinetic(dt);
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_rotational(const double dt)
+{
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->evolution_with_rotational(dt);
+}
+
+void OmegaWavepacketsOnSingleDevice::calculate_rotational_energies_for_legendre_psi()
+{
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->calculate_rotational_energy_for_legendre_psi();
+}
+
+void OmegaWavepacketsOnSingleDevice::calculate_kinetic_energies_for_legendre_psi()
+{
+  const int &n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->calculate_kinetic_energy_for_legendre_psi();
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double dt)
+{
+  setup_device();
+  
+  if(step == 0) evolution_with_potential(-dt/2);
+  
+  evolution_with_potential(dt);
+
+  forward_legendre_transform();
+
+  evolution_with_rotational(dt/2);
+  
+  forward_fft_for_legendre_psi();
+  
+  evolution_with_kinetic(dt);
+
+  calculate_kinetic_energies_for_legendre_psi();
+
+  backward_fft_for_legendre_psi(1);
+
+  evolution_with_rotational(dt/2);
+
+  calculate_rotational_energies_for_legendre_psi();
+  
+  backward_legendre_transform();
+
+  calculate_wavepacket_potential_energies();
+  calculate_wavepacket_modules();
+
+  std::ios_base::fmtflags old_flags = std::cout.flags();
+
+  const int &n = omega_wavepackets.size();
+  for(int i = 0; i < n; i++) {
+    std::cout << " " << i 
+	      << std::fixed
+	      << " " << omega_wavepackets[i]->wavepacket_module() 
+	      << " " << omega_wavepackets[i]->potential_energy()
+	      << " " << omega_wavepackets[i]->kinetic_energy()
+	      << " " << omega_wavepackets[i]->rotational_energy()
+	      << " " << omega_wavepackets[i]->total_energy()
+	      << std::endl;
+  }
+  
+  std::cout.flags(old_flags);
 }

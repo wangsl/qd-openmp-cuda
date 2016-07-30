@@ -25,10 +25,13 @@ public:
   const int &device_index() const { return _device_index; }
   int current_device_index() const;
 
-  void calculate_omega_wavepacket_modules();
-  void calculate_omega_wavepacket_potential_energy();
+  void calculate_wavepacket_modules();
+  void calculate_wavepacket_potential_energies();
 
-  void calculate_wavepacket_module_for_legendre_psi();
+  void calculate_kinetic_energies_for_legendre_psi();
+  void calculate_rotational_energies_for_legendre_psi();
+  
+  void calculate_wavepacket_modules_for_legendre_psi();
 
   void forward_legendre_transform();
   void backward_legendre_transform();
@@ -41,6 +44,8 @@ public:
   void copy_coriolis_matrices_to_device(const double *c, const int s);
 
   void setup_constant_memory_on_device();
+
+  void evolution_test(const int step, const double dt);
 
 private:
 
@@ -83,6 +88,10 @@ private:
 
   void setup_potential_on_device();
   void setup_omega_wavepackets();
+
+  void evolution_with_potential(const double dt);
+  void evolution_with_kinetic(const double dt);
+  void evolution_with_rotational(const double dt);
 };
 
 #endif /* WAVEPACKETS_ON_SINGLE_DEVICE */

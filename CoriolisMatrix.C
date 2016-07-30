@@ -84,7 +84,7 @@ void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat)
   double *diag_eles = cor_mat;
   for(int k = 0; k < n; k++) {
     const int omega = k + omega_min;
-    diag_eles[k] = J*(J+1.0) + j*(j+1.0) - 2.0*omega*omega;
+    diag_eles[k] = J*(J+1) - 2*omega*omega;
   }
   
   double *sub_diag_eles = new double [n-1];

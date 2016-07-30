@@ -10,7 +10,12 @@ module load matlab/2015b
 
 export LD_PRELOAD=$GCC_LIB/libstdc++.so:$LD_PRELOAD
 
-#export CUDA_VISIBLE_DEVICES="1,2,3,4,5,6,7"
-#export CUDA_VISIBLE_DEVICES="1"
+#export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
+export CUDA_VISIBLE_DEVICES="0"
 
-taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" 2>&1 | tee stdout.log
+if [ "$1" == "-m" ]; then
+    taskset -c 0-19 matlab 
+else
+    taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" 2>&1 | tee stdout.log
+    #taskset -c 0-19 matlab -nodisplay -r "FH2main2(0,0); exit" 2>&1 | tee stdout.log
+fi
