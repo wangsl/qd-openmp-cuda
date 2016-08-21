@@ -4,6 +4,7 @@
 
 #include <cublas_v2.h>
 #include "omegawavepacket.h"
+#include "evolutionUtils.h"
 
 class OmegaWavepacketsOnSingleDevice
 {
@@ -16,7 +17,8 @@ public:
 				 const RadialCoordinate &r2,
 				 const AngleCoordinate &theta,
 				 OmegaStates &omegas_states,
-				 const int &l_max);
+				 const int &l_max,
+				 const Vec<CoriolisMatrixAux> &coriolis_matrices);
   
   ~OmegaWavepacketsOnSingleDevice();
   
@@ -33,6 +35,8 @@ public:
   
   void calculate_wavepacket_modules_for_legendre_psi();
 
+  void calculate_coriolis_energy_for_legendre_psi();
+
   void forward_legendre_transform();
   void backward_legendre_transform();
 
@@ -43,11 +47,16 @@ public:
 
   void copy_coriolis_matrices_to_device(const double *c, const int s);
 
-  void setup_constant_memory_on_device();
+  void setup_constant_memory_on_device(const double time_step);
 
   void evolution_test(const int step, const double dt);
 
+  void test_coriolis_matrices() const;
+
 private:
+
+  double total_module;
+  double total_energy;
 
   int _device_index;
   int omega_start_index;
@@ -61,14 +70,14 @@ private:
   OmegaStates &omega_states;
 
   const int &l_max;
+  const Vec<CoriolisMatrixAux> &coriolis_matrices;
   
   double *pot_dev;
   
   Complex *work_dev;
 
   double *coriolis_matrices_dev;
-  Vec<int> coriolis_matrices_index;
-  
+
   cublasHandle_t cublas_handle;
   int has_cublas_handle;
   void setup_cublas_handle();
@@ -92,6 +101,7 @@ private:
   void evolution_with_potential(const double dt);
   void evolution_with_kinetic(const double dt);
   void evolution_with_rotational(const double dt);
+  void evolution_with_coriolis(const double dt);
 };
 
 #endif /* WAVEPACKETS_ON_SINGLE_DEVICE */

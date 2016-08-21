@@ -27,9 +27,11 @@ public:
 
   void test();
 
+  void test_coriolis() const;
+
   Vec<OmegaWavepacketsOnSingleDevice *> omega_wavepackets_on_single_device;
 
-  Vec<CoriolisMatrix> coriolis_matrices;
+  Vec<CoriolisMatrixAux> coriolis_matrices;
 
 private:
   

@@ -11,11 +11,6 @@
 
 #include "complex.h"
 
-// do not use printf macro in matlab 
-#ifdef printf
-#undef printf
-#endif
-
 namespace cudaMath {
 
   inline bool is_pow_2(int x) { return ((x&(x-1)) == 0); }
@@ -42,7 +37,7 @@ namespace cudaMath {
   
   __device__ inline double atomicAdd(double *address, double val)
   {
-    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int* address_as_ull = (unsigned long long int *) address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
       assumed = old;
@@ -134,7 +129,8 @@ namespace cudaMath {
     }
   }
 
-  __device__ inline void setup_exp_i_kinetic_dt(Complex *kin, const int n, const double xl, const double mass, const double dt)
+  __device__ inline void setup_exp_i_kinetic_dt(Complex *kin, const int n, const double xl, 
+						const double mass, const double dt)
   {
     if(n/2*2 != n) return;
     
@@ -166,5 +162,5 @@ namespace cudaMath {
   }
 }
 
-#endif
+#endif /* __NVCC__ */
 #endif /* CUMATH_H */

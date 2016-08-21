@@ -29,56 +29,18 @@ void CudaOpenMPQMMD::setup_n_gpus()
 void CudaOpenMPQMMD::test()
 {
   insist(n_gpus() == 1);
-
+  
   std::cout << time << std::endl;
+  
+  //omega_wavepackets_on_single_device[0]->test_coriolis_matrices();
+
+  //return;
 
   for(int L = 0; L < time.total_steps; L++) {
- 
+    
     std::cout << std::endl << " L: " << L << ", " << time_now() << std::endl;
-
+    
     omega_wavepackets_on_single_device[0]->evolution_test(L, time.time_step);
-
-#if 0
-    
-    omp_set_num_threads(n_gpus());
-    
-#pragma omp parallel for default(shared)
-    for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
-
-      omega_wavepackets_on_single_device[i_dev]->evolution_with_potential(1.0);
-      omega_wavepackets_on_single_device[i_dev]->evolution_with_potential(-1.0);
-
-      omega_wavepackets_on_single_device[i_dev]->calculate_omega_wavepacket_modules();
-      omega_wavepackets_on_single_device[i_dev]->calculate_omega_wavepacket_potential_energy();
-      omega_wavepackets_on_single_device[i_dev]->forward_legendre_transform();
-      
-      omega_wavepackets_on_single_device[i_dev]->calculate_wavepacket_module_for_legendre_psi();
-
-      omega_wavepackets_on_single_device[i_dev]->forward_fft_for_legendre_psi();
-      omega_wavepackets_on_single_device[i_dev]->backward_fft_for_legendre_psi(1);
-
-      omega_wavepackets_on_single_device[i_dev]->backward_legendre_transform();
-
-    }
-
-    devices_synchronize();
-
-    std::ios_base::fmtflags old_flags = std::cout.flags();
-    
-    for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
-      const int &n = omega_wavepackets_on_single_device[i_dev]->omega_wavepackets.size();
-      for(int i = 0; i < n; i++)
-	std::cout << " " << i_dev << " " << i 
-		  << std::fixed
-		  << " " << omega_wavepackets_on_single_device[i_dev]->omega_wavepackets[i]->wavepacket_module() 
-		  << " " << omega_wavepackets_on_single_device[i_dev]->omega_wavepackets[i]->potential_energy()
-		  << " " << omega_wavepackets_on_single_device[i_dev]->omega_wavepackets[i]->wavepacket_module_for_legendre_psi()
-		  << std::endl;
-    }
-
-    std::cout.flags(old_flags);
-#endif
-
   }
 }
 
@@ -96,13 +58,14 @@ void CudaOpenMPQMMD::setup_wavepackets_on_single_device()
   
   std::cout << " Omegas index: ";
   omegas_index.show_in_one_line();
-
+  
   int omega_start_index = 0;
   for(int i_dev = 0; i_dev < n; i_dev++) {
     const int n_omegas = omegas_index[i_dev];
-    omega_wavepackets_on_single_device[i_dev] = \
+    omega_wavepackets_on_single_device[i_dev] = 
       new OmegaWavepacketsOnSingleDevice(i_dev, omega_start_index, n_omegas, 
-					 pot, r1, r2, theta, omegas, omegas.l_max);
+					 pot, r1, r2, theta, omegas, omegas.l_max,
+					 coriolis_matrices);
     
     insist(omega_wavepackets_on_single_device[i_dev]);
     
@@ -149,33 +112,38 @@ void CudaOpenMPQMMD::setup_coriolis_matrices_and_copy_to_device()
 {
   std::cout << " Setup Coriolis Matrices and copy to devices" << std::endl;
   
-  const int m = omegas.l_max - omegas.omegas[0];
+  const int m = omegas.l_max + 1;
   coriolis_matrices.resize(m);
-
+  
   int s = 0;
-  for(int i = 0; i < m; i++) {
+  for(int i = omegas.omegas[0]; i < m; i++) {
     int &l = coriolis_matrices[i].l;
     int &omega_min = coriolis_matrices[i].omega_min;
     int &omega_max = coriolis_matrices[i].omega_max;
-    l = i + omegas.omegas[0];
+    coriolis_matrices[i].offset = s;
+    l = i;
     calculate_coriolis_matrix_dimension(omegas.J, omegas.parity, l, omega_min, omega_max);
     const int n = omega_max - omega_min + 1;
     s += n*(n+1);
   }
-  
+
   double *cor_mats = new double [s];
   insist(cor_mats);
   memset(cor_mats, 0, s*sizeof(double));
   
-  s = 0;
   for(int i = 0; i < m; i++) {
     const int &l = coriolis_matrices[i].l;
+    if(l == -1) continue;
+    
     const int &omega_min = coriolis_matrices[i].omega_min;
     const int &omega_max = coriolis_matrices[i].omega_max;
     const int n = omega_max - omega_min + 1;
-    RMat cor_mat_(n, n+1, cor_mats+s);
+    RMat cor_mat_(n, n+1, cor_mats+coriolis_matrices[i].offset);
+
+    //std::cout << coriolis_matrices[i] << std::endl;
+    
     setup_coriolis_matrix(omegas.J, omegas.parity, l, cor_mat_);
-    s += n*(n+1);
+    //std::cout << cor_mat_ << std::endl;
   }
   
   omp_set_num_threads(n_gpus());
@@ -194,7 +162,7 @@ void CudaOpenMPQMMD::setup_constant_memory_on_device()
   omp_set_num_threads(n_gpus());
 #pragma omp parallel for default(shared)
   for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
-    omega_wavepackets_on_single_device[i_dev]->setup_constant_memory_on_device();
+    omega_wavepackets_on_single_device[i_dev]->setup_constant_memory_on_device(time.time_step);
   }
 }
 
@@ -204,4 +172,9 @@ void CudaOpenMPQMMD::reset_devices()
     checkCudaErrors(cudaSetDevice(i_dev));
     checkCudaErrors(cudaDeviceReset());
   }
+}
+
+void CudaOpenMPQMMD::test_coriolis() const
+{
+  omega_wavepackets_on_single_device[0]->test_coriolis_matrices();
 }

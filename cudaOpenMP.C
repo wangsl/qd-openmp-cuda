@@ -16,7 +16,11 @@ CudaOpenMPQMMD::CudaOpenMPQMMD(const double *pot_,
 
 CudaOpenMPQMMD::~CudaOpenMPQMMD()
 {
+  std::cout << std::endl;
   pot = 0;
   destroy_wavepackets_on_single_device();
   reset_devices();
 }
+
+
+

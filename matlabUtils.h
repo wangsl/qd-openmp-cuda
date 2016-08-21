@@ -8,6 +8,11 @@
 #define MatCrash(x) MatlabCrashLoc(x, __FILE__, __LINE__)
 #define MatlabCrash(x) MatlabCrashLoc(x, __FILE__, __LINE__)
 
+// do not use printf macro in matlab 
+#ifdef printf
+#undef printf
+#endif
+
 #ifdef __cplusplus
 
 #include <mex.h>

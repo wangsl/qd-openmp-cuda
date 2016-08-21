@@ -19,13 +19,13 @@ setenv('HSW_DATA_DIR', ...
 global H2eV 
 global FH2Data
 
-theta.n = int32(180);
+theta.n = int32(140);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
-J = 1;
+J = 3;
 M = 1;
 p = 1;
-LMax = 120;
+LMax = 100;
 
 Omegas = OmegaList(J, p, LMax)
 
@@ -62,12 +62,11 @@ masses = masses*MassAU;
 % time
 
 time.total_steps = int32(10);
-time.time_step = 1;
+time.time_step = 20.0;
 time.steps = int32(0);
 
 % r1: R
 
-%r1.n = int32(1024);
 r1.n = int32(512);
 r1.r = linspace(0.2, 14.0, r1.n);
 r1.left = r1.r(1);
@@ -131,10 +130,10 @@ theta.associated_legendre = LegendreP2(double(theta.m), theta.x);
 % matrix multiplication in C++ and Fortran LegTransform.F
 theta.associated_legendre = theta.associated_legendre';
 
-theta.legendre = LegendreP2(double(theta.m), theta.x);
+% theta.legendre = LegendreP2(double(theta.m), theta.x);
 % transpose Legendre polynomials in order to do 
 % matrix multiplication in C++ and Fortran LegTransform.F
-theta.legendre = theta.legendre';
+% theta.legendre = theta.legendre';
 
 % options
 
@@ -152,6 +151,7 @@ fprintf(' Setup Initial Wave Packet\n');
 
 nOmegas = numel(OmegaStates.omegas);
 OmegaStates.wave_packets = zeros([size(psi), nOmegas]);
+%OmegaStates.wave_packets(:,:,:,1) = psi;
 for i = 1 : nOmegas
   OmegaStates.wave_packets(:,:,:,i) = psi;
 end

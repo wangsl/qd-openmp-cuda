@@ -5,6 +5,7 @@
 #include <cublas_v2.h>
 #include "matlabStructures.h"
 #include "complex.h"
+#include "evolutionUtils.h"
 
 class OmegaWavepacket
 {
@@ -15,6 +16,7 @@ public:
 
   OmegaWavepacket(const int &omega,
 		  const int &l_max,
+		  const Vec<CoriolisMatrixAux> &coriolis_matrices,
 		  const RMat &associated_legendres,
 		  const RadialCoordinate &r1,
 		  const RadialCoordinate &r2,
@@ -50,6 +52,15 @@ private:
   
   void calculate_wavepacket_module_for_legendre_psi();
   
+  void calculate_coriolis_energy_for_legendre_psi(const int omega1,
+						  const double *coriolis_matrices_dev,
+						  const Complex *legendre_psi_omega1);
+  
+  void calculate_coriolis_energy_for_legendre_psi_2(const int omega1,
+						    const double *coriolis_matrices_dev,
+						    const Complex *legendre_psi_omega1);
+  
+  
   void forward_legendre_transform();
   void backward_legendre_transform();
   
@@ -65,6 +76,7 @@ private:
 
   const int &omega;
   const int &l_max;
+  const Vec<CoriolisMatrixAux> &coriolis_matrices;
   const RMat &associated_legendres;
 
   const RadialCoordinate &r1;
@@ -98,6 +110,19 @@ private:
   void evolution_with_potential(const double dt);
   void evolution_with_kinetic(const double dt);
   void evolution_with_rotational(const double dt);
+  
+  void evolution_with_coriolis(const double dt,
+			       const int l, const int omega1,
+			       const double *coriolis_matrices_dev,
+			       const Complex *legendre_psi_omega1,
+			       cudaStream_t *stream = 0); 
+  
+  void evolution_with_coriolis(const double dt, const int omega1,
+			       const double *coriolis_matrices_dev,
+			       const Complex *legendre_psi_omega1);
+
+  void zero_psi_dev();
+  void update_evolution_with_coriolis();
 };
 
 #endif /* OMEG_WAVEPACKET_H */

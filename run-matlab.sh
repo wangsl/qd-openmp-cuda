@@ -13,6 +13,8 @@ export LD_PRELOAD=$GCC_LIB/libstdc++.so:$LD_PRELOAD
 #export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 export CUDA_VISIBLE_DEVICES="0"
 
+# for((i=0; i<100; i++)) { taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" } 2>&1 | tee stdout.log; exit
+
 if [ "$1" == "-m" ]; then
     taskset -c 0-19 matlab 
 else

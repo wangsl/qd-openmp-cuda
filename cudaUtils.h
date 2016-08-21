@@ -13,7 +13,7 @@ namespace cudaUtils {
   
   inline int number_of_blocks(const int n_threads, const int n)
   { return n/n_threads*n_threads == n ? n/n_threads : n/n_threads+1; }
-
+  
   void gpu_memory_usage();
 }
 
@@ -27,6 +27,4 @@ inline char *time_now()
   return time;
 }
 
-#endif /* MY_CUDA_UTILS_H */
-
-
+#endif /* CUDA_UTILS_H */

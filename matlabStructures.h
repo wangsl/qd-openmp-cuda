@@ -9,6 +9,7 @@ using namespace std;
 #include <mex.h>
 #include "rmat.h"
 #include "complex.h"
+#include "matlabUtils.h"
 
 class RadialCoordinate
 {

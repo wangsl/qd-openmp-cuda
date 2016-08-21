@@ -2,16 +2,18 @@
 #ifndef EVOLUTION_UTILS_H
 #define EVOLUTION_UTILS_H
 
-struct CoriolisMatrix
+struct CoriolisMatrixAux
 {
   int l = -1;
   int omega_min = -1;
   int omega_max = -1;
+  int offset = -1;
 };
 
-inline std::ostream & operator <<(std::ostream &s, const CoriolisMatrix &c)
+inline std::ostream & operator <<(std::ostream &s, const CoriolisMatrixAux &c)
 {
-  return s << " l: " << c.l << " omega_min: " <<  c.omega_min << " omega_max: " << c.omega_max;
+  return s << " l: " << c.l << " omega_min: " <<  c.omega_min << " omega_max: " << c.omega_max
+	   << " offset: " << c.offset;
 }
 
 void calculate_coriolis_matrix_dimension(const int J, const int p, const int j, int &omega_min, int &omega_max);
@@ -53,6 +55,7 @@ namespace EvoltionUtils {
 
 extern __constant__ EvoltionUtils::RadialCoordinate r1_dev;
 extern __constant__ EvoltionUtils::RadialCoordinate r2_dev;
+extern __constant__ double time_step_dev;
 //extern __constant__ double gauss_legendre_weight_dev[512];
 
 #endif /* __NVCC__ */

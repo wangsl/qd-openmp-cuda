@@ -62,7 +62,6 @@ void calculate_coriolis_matrix_dimension(const int J, const int p, const int j,
   insist(j >= omega_min);
 }
 
-
 void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat)
 {
   if(J == 0) insist(p == 0);
@@ -73,7 +72,7 @@ void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat)
 
   insist(j >= omega_min);
 
-#if 0  
+#if 0
   std::cout << " J: " << J << " p: " << p << " j: " << j
 	    << " OmegaMin: " << omega_min << " OmegaMax: " << omega_max 
 	    << " size: " << n << std::endl;
