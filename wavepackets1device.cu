@@ -130,12 +130,15 @@ void OmegaWavepacketsOnSingleDevice::setup_omega_wavepackets()
   Vec<int> omegas(n_omegas, (int *)omega_states.omegas + omega_start_index);
   
   for(int i = 0; i < n_omegas; i++) {
-    omega_wavepackets[i] = new OmegaWavepacket(omegas[i], omega_states.l_max,
+    omega_wavepackets[i] = new OmegaWavepacket(omegas[i], 
+					       omega_states.l_max,
 					       coriolis_matrices,
 					       omega_states.associated_legendres[omega_start_index+i],
 					       r1, r2, theta, 
 					       omega_states.wave_packets[omega_start_index+i],
-					       pot_dev, cublas_handle, cufft_plan_for_legendre_psi, work_dev);
+					       pot_dev, cublas_handle, 
+					       cufft_plan_for_legendre_psi, 
+					       work_dev);
     insist(omega_wavepackets[i]);
   }
 }
@@ -393,14 +396,14 @@ void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double
 
   calculate_wavepacket_potential_energies();
   calculate_wavepacket_modules();
-
+  
   std::ios_base::fmtflags old_flags = std::cout.flags();
 
   const int &n = omega_wavepackets.size();
-
+  
   total_module = 0.0;
   total_energy = 0.0;
- 
+  
   for(int i = 0; i < n; i++) {
     std::cout << " " << i 
 	      << std::fixed
@@ -415,7 +418,7 @@ void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double
     total_energy += omega_wavepackets[i]->total_energy();
   }
   
-  std::cout << " " << total_module << " " << total_energy << std::endl;
+  std::cout << " Total: " << total_module << " " << total_energy << std::endl;
   
   std::cout.flags(old_flags);
 }
@@ -435,10 +438,8 @@ void OmegaWavepacketsOnSingleDevice::evolution_with_coriolis(const double dt)
     }
   }
   
-  for(int i = 0; i < n_omegas; i++) {
+  for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->update_evolution_with_coriolis();
-    omega_wavepackets[i]->zero_psi_dev();
-  }
 }
 
 void OmegaWavepacketsOnSingleDevice::calculate_coriolis_energy_for_legendre_psi()
@@ -453,10 +454,9 @@ void OmegaWavepacketsOnSingleDevice::calculate_coriolis_energy_for_legendre_psi(
     for(int j = i; j < n_omegas; j++) {
       const int &omega_j = omega_wavepackets[j]->omega;
       if(omega_i == omega_j || omega_i+1 == omega_j || omega_i-1 == omega_j) {
-	
-	omega_wavepackets[i]->calculate_coriolis_energy_for_legendre_psi_2(omega_j, 
-									   coriolis_matrices_dev,
-									   omega_wavepackets[j]->legendre_psi_dev);
+	omega_wavepackets[i]->calculate_coriolis_energy_for_legendre_psi(omega_j, 
+									 coriolis_matrices_dev,
+								       omega_wavepackets[j]->legendre_psi_dev);
 	
       }
     }

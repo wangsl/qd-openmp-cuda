@@ -24,7 +24,7 @@ fprintf(' H2 vibrational function module: %.15f\n', sum(psiH2.^2)*R2.dr)
 P = LegendreP(jRot, Theta.x);
 P = sqrt(jRot+1/2)*P;
 
-sum(P.^2.*Theta.w)
+%sum(P.^2.*Theta.w)
 
 psiP = psiH2*P';
 psiP = reshape(psiP, [1, numel(psiP)]);

@@ -60,6 +60,10 @@ private:
 						    const double *coriolis_matrices_dev,
 						    const Complex *legendre_psi_omega1);
   
+  void calculate_coriolis_energy_for_legendre_psi_3(const int omega1,
+						  const double *coriolis_matrices_dev,
+						  const Complex *legendre_psi_omega1);
+  
   
   void forward_legendre_transform();
   void backward_legendre_transform();

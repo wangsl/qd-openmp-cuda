@@ -39,18 +39,18 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(10);
+time.total_steps = int32(1000);
 time.time_step = 1;
 time.steps = int32(0);
 
 % r1: R
 
-r1.n = int32(512);
+r1.n = int32(256);
 r1.r = linspace(0.2, 14.0, r1.n);
 r1.dr = r1.r(2) - r1.r(1);
 r1.mass = masses(1)*(masses(2)+masses(3))/(masses(1)+masses(2)+masses(3));
-r1.r0 = 10.0;
-r1.k0 = 2.0;
+r1.r0 = 6.0;
+r1.k0 = 1.0;
 r1.delta = 0.2;
 
 eGT = 1/(2*r1.mass)*(r1.k0^2 + 1/(2*r1.delta^2))*H2eV
@@ -61,7 +61,7 @@ dump1.xd = 12.0;
 
 % r2: r
 
-r2.n = int32(512);
+r2.n = int32(256);
 r2.r = linspace(0.3, 12.0, r2.n);
 r2.dr = r2.r(2) - r2.r(1);
 r2.mass = masses(2)*masses(3)/(masses(2)+masses(3));
@@ -88,7 +88,7 @@ if dimensions == 2
   theta.w = 2.0;
 else 
   theta.n = int32(180);
-  theta.m = int32(120);
+  theta.m = int32(140);
   [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 end
 

@@ -3,6 +3,7 @@
 
 close all
 clear all
+%clc
 
 format long
 
@@ -19,13 +20,18 @@ setenv('HSW_DATA_DIR', ...
 global H2eV 
 global FH2Data
 
-theta.n = int32(140);
+theta.n = int32(160);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
-J = 3;
-M = 1;
-p = 1;
-LMax = 100;
+% J = 0; p = 0; M = 0; % Omegas = [ 0 ]
+% J = 1; p = 1; M = 0; % Omegas = [ 0 1 ]
+J = 1; p = 0; M = 0; % Omegas = [ 1 ]
+% J = 2; p = 0; M = 0; % Omegas = [ 0 1 2 ]
+% J = 2; p = 1; M = 0; % OMegas = [ 1 2 ]
+% J = 3; p = 1; M = 0; % Omegas = [ 0 1 2 3 ]
+% J = 3; p = 0; M = 0; % Omegas = [ 1 2 3 ]
+
+LMax = 120;
 
 Omegas = OmegaList(J, p, LMax)
 
@@ -61,8 +67,8 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(10);
-time.time_step = 20.0;
+time.total_steps = int32(1000);
+time.time_step = 1.0;
 time.steps = int32(0);
 
 % r1: R
@@ -76,8 +82,8 @@ r1.mass = masses(1)*(masses(2)+masses(3))/(masses(1)+masses(2)+ ...
 r1.dump_Cd = 4.0;
 r1.dump_xd = 12.0;
 
-r1.r0 = 10.0;
-r1.k0 = 2.0;
+r1.r0 = 6.0;
+r1.k0 = 1.0;
 r1.delta = 0.2;
 
 eGT = 1/(2*r1.mass)*(r1.k0^2 + 1/(2*r1.delta^2))*H2eV;
@@ -151,11 +157,14 @@ fprintf(' Setup Initial Wave Packet\n');
 
 nOmegas = numel(OmegaStates.omegas);
 OmegaStates.wave_packets = zeros([size(psi), nOmegas]);
-%OmegaStates.wave_packets(:,:,:,1) = psi;
-for i = 1 : nOmegas
-  OmegaStates.wave_packets(:,:,:,i) = psi;
+if 0 == 0
+  OmegaStates.wave_packets(:,:,:,1) = psi;
+else
+  for i = 1 : nOmegas
+    OmegaStates.wave_packets(:,:,:,i) = psi;
+  end
 end
-
+%}
 size(OmegaStates.wave_packets)
 
 if options.plot 
@@ -195,5 +204,4 @@ cudaOpenMPEvolution(FH2Data);
 fprintf(' ');
 toc
 fprintf('\n');
-
 

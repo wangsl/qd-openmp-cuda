@@ -120,6 +120,8 @@ OmegaStates::OmegaStates(const mxArray *mx) :
   n2 = dims_[1];
   n3 = ass_leg.n_dims() == 3 ? dims_[2] : 1;
 
+  std::cout << " size: " << n1 << " " << n2 << " " << n3 << std::endl;
+
   associated_legendres.resize(n3);
   
   const double *p = ass_leg.data;
@@ -127,6 +129,8 @@ OmegaStates::OmegaStates(const mxArray *mx) :
     associated_legendres[i] = RMat(n1, n2-i, const_cast<double *>(p));
     p += n1*n2;
   }
+
+  //std::cout << associated_legendres << std::endl;
   
   const mxArray *wp_ptr = mxGetField(mx, 0, "wave_packets");
   insist(wp_ptr);

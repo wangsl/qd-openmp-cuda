@@ -37,47 +37,39 @@ inline int kronecker_delta(const int &a, const int &b)
   return a == b ? 1 : 0;
 }
 
-int coriolis_matrix_dimension(const int J, const int p, const int j)
+int coriolis_matrix_dimension(const int J, const int p, const int l)
 {
   if(J == 0) insist(p == 0);
   
   const int omega_min = (J+p)%2 == 0 ? 0 : 1;
-  const int omega_max = std::min(J, j);
+  const int omega_max = std::min(J, l);
   
-  insist(j >= omega_min);
+  insist(l >= omega_min);
 
-  const int n = omega_max - omega_min + 1;
-  
-  return n;
+  return omega_max - omega_min + 1;
 }
 
-void calculate_coriolis_matrix_dimension(const int J, const int p, const int j, 
+void calculate_coriolis_matrix_dimension(const int J, const int p, const int l, 
 					 int &omega_min, int &omega_max)
 {
   if(J == 0) insist(p == 0);
   
   omega_min = (J+p)%2 == 0 ? 0 : 1;
-  omega_max = std::min(J, j);
+  omega_max = std::min(J, l);
   
-  insist(j >= omega_min);
+  insist(l >= omega_min);
 }
 
-void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat)
+void setup_coriolis_matrix(const int J, const int p, const int l, RMat &cor_mat)
 {
   if(J == 0) insist(p == 0);
   
   const int omega_min = (J+p)%2 == 0 ? 0 : 1;
-  const int omega_max = std::min(J, j);
+  const int omega_max = std::min(J, l);
   const int n = omega_max - omega_min + 1;
 
-  insist(j >= omega_min);
+  insist(l >= omega_min);
 
-#if 0
-  std::cout << " J: " << J << " p: " << p << " j: " << j
-	    << " OmegaMin: " << omega_min << " OmegaMax: " << omega_max 
-	    << " size: " << n << std::endl;
-#endif
-  
   cor_mat.resize(n, n+1);
   
   double *diag_eles = cor_mat;
@@ -90,7 +82,7 @@ void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat)
   insist(sub_diag_eles);
   for(int k = 0; k < n-1; k++) {
     const int omega = k + omega_min;
-    sub_diag_eles[k] = -lambda(J, omega, 0)*lambda(j, omega, 0)*sqrt(1.0 + kronecker_delta(omega, 0));
+    sub_diag_eles[k] = -lambda(J, omega, 0)*lambda(l, omega, 0)*sqrt(1.0 + kronecker_delta(omega, 0));
   }
   
   double *work = new double [std::max(1, 2*(n-1))];
