@@ -74,6 +74,8 @@ private:
   void copy_psi_from_host_to_device();
   void copy_psi_from_device_to_host();
 
+  void dump_wavepacket();
+
 private:
   
   Complex *psi;

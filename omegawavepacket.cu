@@ -7,11 +7,11 @@
 
 #include "evolutionCUDAaux.cu"
 
-/*
-  legendre_psi_dev dimesnions 0..l_max (lmax+1)
-  real data is legendre_psi_dev(:, :, omega..lmax)
-  but for FFT, we'll have to use all data
-*/
+/*******
+ * legendre_psi_dev dimesnions 0..l_max (lmax+1)
+ * real data is legendre_psi_dev(:, :, omega..lmax)
+ * but for FFT, we'll have to use all data in order to use same FFT plan
+ ******/
 
 OmegaWavepacket::OmegaWavepacket(const int &omega_,
 				 const int &l_max_,
@@ -132,10 +132,9 @@ void OmegaWavepacket::setup_associated_legendres()
   
   const int &n_theta = theta.n;
   const int n_legs = l_max - omega + 1;
-  insist(n_legs > 0);
-  
+
   const RMat &p = associated_legendres;
-  insist(p.rows() == n_theta);
+  insist(p.rows() == n_theta && p.columns() == n_legs);
   
   Mat<Complex> p_complex(n_legs, n_theta);
   for(int l = 0; l < n_legs; l++) {
@@ -156,12 +155,11 @@ void OmegaWavepacket::setup_weighted_associated_legendres()
   
   const int &n_theta = theta.n;
   const int n_legs = l_max - omega + 1;
-  insist(n_legs > 0);
   
   const double *w = theta.w;
 
   const RMat &p = associated_legendres;
-  insist(p.rows() == n_theta);
+  insist(p.rows() == n_theta && p.columns() == n_legs);
 
   Mat<Complex> wp_complex(n_theta, n_legs);
   for(int l = 0; l < n_legs; l++) {
@@ -203,8 +201,6 @@ void OmegaWavepacket::forward_legendre_transform()
   const Complex one(1.0, 0.0);
   const Complex zero(0.0, 0.0);
 
-  checkCudaErrors(cudaMemset(legendre_psi_dev, 0, n1*n2*(l_max+1)*sizeof(Complex)));
-
   Complex *legendre_psi_dev_ = legendre_psi_dev + omega*n1*n2;
   
   insist(cublasZgemm(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -225,8 +221,6 @@ void OmegaWavepacket::backward_legendre_transform()
   
   const Complex one(1.0, 0.0);
   const Complex zero(0.0, 0.0);
-  
-  checkCudaErrors(cudaMemset(psi_dev, 0, n1*n2*n_theta*sizeof(Complex)));
   
   const Complex *legendre_psi_dev_ = legendre_psi_dev + omega*n1*n2;
 
@@ -257,10 +251,13 @@ void OmegaWavepacket::backward_fft_for_legendre_psi(const int do_scale)
   if(do_scale) {
     const int &n1 = r1.n;
     const int &n2 = r2.n;
-    const int n_legs = l_max + 1;
+    const int n_legs = l_max - omega + 1;
+
+    Complex *legendre_psi_dev_ = legendre_psi_dev + omega*n1*n2;
     
     const double s = 1.0/(n1*n2);
-    insist(cublasZdscal(cublas_handle, n1*n2*n_legs, &s, (cuDoubleComplex *) legendre_psi_dev, 1) 
+    insist(cublasZdscal(cublas_handle, n1*n2*n_legs, &s, 
+			(cuDoubleComplex *) legendre_psi_dev_, 1) 
            == CUBLAS_STATUS_SUCCESS);
   }
 }
@@ -272,7 +269,8 @@ void OmegaWavepacket::copy_psi_from_device_to_host()
   const int &n_theta = theta.n;
   
   insist(psi && psi_dev);
-  checkCudaErrors(cudaMemcpy(psi, psi_dev, n1*n2*n_theta*sizeof(Complex), cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(psi, psi_dev, n1*n2*n_theta*sizeof(Complex), 
+			     cudaMemcpyDeviceToHost));
 }
 
 void OmegaWavepacket::copy_psi_from_host_to_device()
@@ -285,7 +283,8 @@ void OmegaWavepacket::copy_psi_from_host_to_device()
     checkCudaErrors(cudaMalloc(&psi_dev, n1*n2*n_theta*sizeof(Complex)));
   insist(psi_dev);
   
-  checkCudaErrors(cudaMemcpy(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), 
+			     cudaMemcpyHostToDevice));
 }
 
 void OmegaWavepacket::calculate_wavepacket_module_for_legendre_psi()
@@ -294,7 +293,7 @@ void OmegaWavepacket::calculate_wavepacket_module_for_legendre_psi()
   const int &n2 = r2.n;
   const int n_legs = l_max - omega + 1;
   
-  const Complex *legendre_psi_dev_ = legendre_psi_dev + omega*n1*n2;
+  const Complex *legendre_psi_dev_ = legendre_psi_dev + n1*n2*omega;
   
   Complex s(0.0, 0.0);
   
@@ -314,7 +313,7 @@ void OmegaWavepacket::evolution_with_potential(const double dt)
   const int &n2 = r2.n;
   const int &n_theta = theta.n;
   
-  const int n = n1*n2*n_theta;
+  const size_t n = n1*n2*n_theta;
   
   const int n_threads = _NTHREADS_;
   const int n_blocks = cudaUtils::number_of_blocks(n_threads, n);
@@ -328,7 +327,7 @@ void OmegaWavepacket::evolution_with_kinetic(const double dt)
   const int &n2 = r2.n;
   const int n_legs = l_max - omega + 1;
   
-  const int n = n1*n2*n_legs;
+  const size_t n = n1*n2*n_legs;
 
   Complex *legendre_psi_dev_ = legendre_psi_dev + n1*n2*omega;
   
@@ -344,16 +343,16 @@ void OmegaWavepacket::evolution_with_rotational(const double dt)
   const int &n1 = r1.n;
   const int &n2 = r2.n;
   const int n_legs = l_max - omega + 1;
-  
-  const int n = n1*n2*n_legs;
+
+  const size_t n = n1*n2*n_legs;
 
   Complex *legendre_psi_dev_ = legendre_psi_dev + n1*n2*omega;
-  
+
   const int n_threads = _NTHREADS_;
   const int n_blocks = cudaUtils::number_of_blocks(n_threads, n);
   
   _evolution_with_rotational_<<<n_blocks, n_threads, (n1+n2)*sizeof(double)>>>
-    (legendre_psi_dev_, n1, n2, n_legs, dt);
+    (legendre_psi_dev_, n1, n2, n_legs, omega, dt);
 }
 
 void OmegaWavepacket::calculate_kinetic_energy_for_legendre_psi()
@@ -526,3 +525,16 @@ void OmegaWavepacket::calculate_coriolis_energy_for_legendre_psi(const int omega
     _coriolis_energy += dot.real()*r1.dr*r2.dr;
   }
 }
+
+void OmegaWavepacket::dump_wavepacket()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int &n_theta = theta.n;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2*n_theta);
+  
+  _dump_wavepacket_<<<n_blocks, n_threads>>>(psi_dev, n1, n2, n_theta);
+}
+

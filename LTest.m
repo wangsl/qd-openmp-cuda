@@ -1,24 +1,24 @@
 
-close all
-clear all
-clc
+%close all
+%clear all
+%clc
 
 %format short;
 
 global FH2Data
 
-FH2main
+%FH2main
 
-L = FH2Data.theta.associated_legendre';
+%L = FH2Data.theta.associated_legendre';
 P = FH2Data.OmegaStates.associated_legendres;
 
-[ m, LMax ] = size(L);
+[ m, LMax ] = size(P);
 
-for l = 1 : LMax
-  L(:,l) = sqrt(l-0.5)*L(:,l);
-end
+%for l = 1 : LMax
+%  L(:,l) = sqrt(l-0.5)*L(:,l);
+%end
 
-max(max(abs(L-P)))
+% max(max(abs(L-P)))
 
 psi = FH2Data.psi;
 
@@ -40,11 +40,14 @@ end
 
 %%% Legendre Transform test
 
-for i = 1 : 4
-  sum(w.*sum(abs(psi).^2, 1))*dr1*dr2
+for i = 1 : 10
+  s=sum(w.*sum(abs(psi).^2, 1))*dr1*dr2;
+  fprintf(' Iter: %4d mod: %.15f\n', i, s);
   psiL = psi*wP;
   psi = psiL*P';
 end
+
+return
 
 legBin = fopen('leg.bin', 'r');
 dims = fread(legBin, [1 2], 'int32')

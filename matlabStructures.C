@@ -4,7 +4,6 @@
 #include "matlabStructures.h"
 #include "matlabUtils.h"
 #include "matlabArray.h"
-//#include "fftwinterface.h"
 
 void remove_matlab_script_extension(char *script, const char *extension)
 {
@@ -68,11 +67,12 @@ Options::~Options()
 DumpFunction::DumpFunction(const mxArray *mx) :
   mx(mx), dump(0)
 {
-  dump = (double *) mxGetData(mx, "dump");
+  if(mx) 
+    dump = (double *) mxGetData(mx, "dump");
 }
 
 DumpFunction::~DumpFunction()
-{
+{ 
   if(dump) dump = 0;
 }
 
@@ -120,7 +120,7 @@ OmegaStates::OmegaStates(const mxArray *mx) :
   n2 = dims_[1];
   n3 = ass_leg.n_dims() == 3 ? dims_[2] : 1;
 
-  std::cout << " size: " << n1 << " " << n2 << " " << n3 << std::endl;
+  std::cout << " associated_legendres size: " << n1 << " " << n2 << " " << n3 << std::endl;
 
   associated_legendres.resize(n3);
   
@@ -130,8 +130,6 @@ OmegaStates::OmegaStates(const mxArray *mx) :
     p += n1*n2;
   }
 
-  //std::cout << associated_legendres << std::endl;
-  
   const mxArray *wp_ptr = mxGetField(mx, 0, "wave_packets");
   insist(wp_ptr);
   

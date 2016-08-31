@@ -120,7 +120,7 @@ public:
   DumpFunction(const mxArray *mx);
   ~DumpFunction();
 
-  double *dump; 
+  const double *dump; 
 
 private:
   

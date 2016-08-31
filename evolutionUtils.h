@@ -2,6 +2,8 @@
 #ifndef EVOLUTION_UTILS_H
 #define EVOLUTION_UTILS_H
 
+#include "matlabStructures.h"
+
 struct CoriolisMatrixAux
 {
   int l = -1;
@@ -19,10 +21,9 @@ inline std::ostream & operator <<(std::ostream &s, const CoriolisMatrixAux &c)
 void calculate_coriolis_matrix_dimension(const int J, const int p, const int j, int &omega_min, int &omega_max);
 void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat);
 
-
 #ifdef __NVCC__
 
-namespace EvoltionUtils {
+namespace EvolutionUtils {
   
   struct RadialCoordinate
   {
@@ -51,12 +52,13 @@ namespace EvoltionUtils {
   }
 }
 
-// These constant memory variables are defined as evolutionCUDA2.cu
+// device constant memory variables are defined as wavepackets1device.cu
 
-extern __constant__ EvoltionUtils::RadialCoordinate r1_dev;
-extern __constant__ EvoltionUtils::RadialCoordinate r2_dev;
-extern __constant__ double time_step_dev;
-//extern __constant__ double gauss_legendre_weight_dev[512];
+extern __constant__ EvolutionUtils::RadialCoordinate r1_dev;
+extern __constant__ EvolutionUtils::RadialCoordinate r2_dev;
+
+extern __constant__ double dump1_dev[1024];
+extern __constant__ double dump2_dev[1024];
 
 #endif /* __NVCC__ */
 

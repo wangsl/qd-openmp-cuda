@@ -6,7 +6,7 @@ module load gcc/4.8.2
 module load cuda/7.5.18
 module load matlab/2015b
 
-#export LD_PRELOAD=$LD_PRELOAD:$MKL_LIB/libmkl_intel_ilp64.so:$MKL_LIB/libmkl_core.so:$MKL_LIB/libmkl_intel_thread.so:$INTEL_LIB/libiomp5.so
+export LD_PRELOAD=$LD_PRELOAD:$MKL_LIB/libmkl_intel_ilp64.so:$MKL_LIB/libmkl_core.so:$MKL_LIB/libmkl_intel_thread.so:$INTEL_LIB/libiomp5.so
 
 export LD_PRELOAD=$GCC_LIB/libstdc++.so:$LD_PRELOAD
 
@@ -15,8 +15,10 @@ export CUDA_VISIBLE_DEVICES="0"
 
 # for((i=0; i<100; i++)) { taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" } 2>&1 | tee stdout.log; exit
 
-if [ "$1" == "-m" ]; then
+if [ "$1" == "-matlab" ]; then
     taskset -c 0-19 matlab 
+elif [ "$1" == "-nodesktop" ]; then
+    taskset -c 0-19 matlab -nodesktop -r "FH2main; exit" 2>&1 | tee stdout.log
 else
     taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" 2>&1 | tee stdout.log
     #taskset -c 0-19 matlab -nodisplay -r "FH2main2(0,0); exit" 2>&1 | tee stdout.log

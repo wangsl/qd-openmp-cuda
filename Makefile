@@ -56,6 +56,7 @@ OBJS = $(O)/cudaOpenMPEvolution.o \
 	$(O)/matlabStructuresio.o  $(O)/rmatalgo.o  $(O)/rmato.o  \
 	$(O)/die.o  $(O)/indent.o  $(O)/out.o \
 	$(O)/cudaOpenMP.o  $(O)/CoriolisMatrix.o \
+	$(O)/wave2matlab.o $(O)/matlabData.o \
 	$(CUDAObjs) $(CUDALinkObj)
 
 QMLibs = $(O)/libqmdyn.a

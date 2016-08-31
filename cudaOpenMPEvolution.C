@@ -14,7 +14,8 @@
 
 #include "cudaOpenMP.h"
 
-#include "evolutionUtils.h"
+//#include "evolutionUtils.h"
+#include "matlabData.h"
 
 void omegas_test(OmegaStates &omegas);
 
@@ -61,11 +62,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
   mxPtr = mxGetField(prhs[0], 0, "dump1");
   insist(mxPtr);
   DumpFunction dump1(mxPtr);
-
+  MatlabData::dump1(dump1.dump);
+  
   mxPtr = mxGetField(prhs[0], 0, "dump2");
   insist(mxPtr);
   DumpFunction dump2(mxPtr);
-
+  MatlabData::dump2(dump2.dump);
+  
   mxPtr = mxGetField(prhs[0], 0, "CRP");
   insist(mxPtr);
   CummulativeReactionProbabilities CRP(mxPtr);
@@ -74,7 +77,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
   insist(mxPtr);
   OmegaStates omegas(mxPtr);
 
-  CudaOpenMPQMMD evolCUDA(pot.data, r1, r2, theta, omegas, time);
+  CudaOpenMPQMMD evolCUDA(pot.data, omegas, r1, r2, theta, time, options);
+
   evolCUDA.test();
  
   std::cout.flush();

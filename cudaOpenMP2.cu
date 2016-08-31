@@ -32,11 +32,22 @@ void CudaOpenMPQMMD::test()
   
   std::cout << time << std::endl;
   
-  for(int L = 0; L < time.total_steps; L++) {
+  const int &total_steps = time.total_steps;
+  int &steps = time.steps;
+  const double &dt = time.time_step;
+  
+  for(int L = 0; L < total_steps; L++) {
     
-    std::cout << std::endl << " L: " << L << ", " << time_now() << std::endl;
+    std::cout << std::endl << " Step: " << steps << ", " << time_now() << std::endl;
     
-    omega_wavepackets_on_single_device[0]->evolution_test(L, time.time_step);
+    omega_wavepackets_on_single_device[0]->evolution_test(L, dt);
+
+    steps++;
+
+    if(options.wave_to_matlab && steps%options.steps_to_copy_psi_from_device_to_host == 0) {
+      copy_psi_from_device_to_host();
+      wavepacket_to_matlab(options.wave_to_matlab);
+    }
   }
 }
 
@@ -163,7 +174,7 @@ void CudaOpenMPQMMD::setup_constant_memory_on_device()
   omp_set_num_threads(n_gpus());
 #pragma omp parallel for default(shared)
   for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
-    omega_wavepackets_on_single_device[i_dev]->setup_constant_memory_on_device(time.time_step);
+    omega_wavepackets_on_single_device[i_dev]->setup_constant_memory_on_device(); //time.time_step);
   }
 }
 
@@ -178,4 +189,10 @@ void CudaOpenMPQMMD::reset_devices()
 void CudaOpenMPQMMD::test_coriolis() const
 {
   omega_wavepackets_on_single_device[0]->test_coriolis_matrices();
+}
+
+void CudaOpenMPQMMD::copy_psi_from_device_to_host()
+{
+  std::cout << " Copy wavepacket data from devices to host" << std::endl;
+  omega_wavepackets_on_single_device[0]->copy_psi_from_device_to_host();
 }

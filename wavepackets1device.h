@@ -47,11 +47,13 @@ public:
 
   void copy_coriolis_matrices_to_device(const double *c, const int s);
 
-  void setup_constant_memory_on_device(const double time_step);
+  void setup_constant_memory_on_device(); //const double time_step);
 
   void evolution_test(const int step, const double dt);
 
   void test_coriolis_matrices() const;
+
+  void dump_wavepacket();
 
 private:
 

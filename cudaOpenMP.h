@@ -15,11 +15,12 @@ class CudaOpenMPQMMD
 {
 public:
   CudaOpenMPQMMD(const double *pot, 
+		 OmegaStates &omegas,
 		 const RadialCoordinate &r1,
 		 const RadialCoordinate &r2,
 		 const AngleCoordinate &theta,
-		 OmegaStates &omegas,
-		 EvolutionTime &time);
+		 EvolutionTime &time,
+		 const Options &options);
 
   ~CudaOpenMPQMMD();
 
@@ -43,7 +44,8 @@ private:
   const AngleCoordinate &theta;
   OmegaStates &omegas;
   EvolutionTime &time;
-  
+  const Options &options;
+
   void setup_n_gpus();
 
   void setup_wavepackets_on_single_device();
@@ -57,6 +59,8 @@ private:
   void setup_constant_memory_on_device();
 
   void reset_devices();
+
+  void copy_psi_from_device_to_host();
 };
 
 #endif /* CUDA_OPENMP_H */
