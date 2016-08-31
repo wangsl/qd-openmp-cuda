@@ -19,9 +19,9 @@ RadialCoordinate::RadialCoordinate(const mxArray *mx) :
   n(*(int *) mxGetData(mx, "n")),
   left(*(double *) mxGetData(mx, "left")),
   dr(*(double *) mxGetData(mx, "dr")),
-  mass(*(double *) mxGetData(mx, "mass")),
-  dump_Cd(*(double *) mxGetData(mx, "dump_Cd")),
-  dump_xd(*(double *) mxGetData(mx, "dump_xd"))
+  mass(*(double *) mxGetData(mx, "mass"))
+  //dump_Cd(*(double *) mxGetData(mx, "dump_Cd")),
+  //dump_xd(*(double *) mxGetData(mx, "dump_xd"))
 { }
 
 AngleCoordinate::AngleCoordinate(const mxArray *mx) :

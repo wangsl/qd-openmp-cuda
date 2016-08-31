@@ -20,20 +20,14 @@ OmegaWavepacketsOnSingleDevice::
 OmegaWavepacketsOnSingleDevice(const int device_index_,
 			       const int omega_start_index_,
 			       const int n_omegas_,
-			       const double * &pot_,
-			       const RadialCoordinate &r1_,
-			       const RadialCoordinate &r2_,
-			       const AngleCoordinate &theta_,
-			       OmegaStates &omega_states_,
-			       const int &l_max_,
+			       //OmegaStates &omega_states_,
+			       //const int &l_max_,
 			       const Vec<CoriolisMatrixAux> &coriolis_matrices_) :
   _device_index(device_index_), 
   omega_start_index(omega_start_index_),
   n_omegas(n_omegas_),
-  pot(pot_),
-  r1(r1_), r2(r2_), theta(theta_),
-  omega_states(omega_states_),
-  l_max(l_max_),
+  //omega_states(omega_states_),
+  //l_max(l_max_),
   coriolis_matrices(coriolis_matrices_),
   pot_dev(0),
   work_dev(0),
@@ -72,14 +66,18 @@ void OmegaWavepacketsOnSingleDevice::setup_data_on_device()
 {
   setup_device();
 
-  insist(pot);
+  insist(MatlabData::potential());
   
   std::cout << " setup OmegaWavepacketsOnSingleDevice on device: " << device_index() << std::endl;
 
   setup_constant_data_on_device();
 
   if(!work_dev) {
-    const int max_dim = r1.n*r2.n + theta.n + 1024;
+    const int n1 = MatlabData::r1()->n;
+    const int n2 = MatlabData::r2()->n;
+    const int n_theta = MatlabData::theta()->n;
+    //const int max_dim = r1.n*r2.n + theta.n + 1024;
+    const int max_dim = n1*n2 + n_theta + 1024;
     checkCudaErrors(cudaMalloc(&work_dev, max_dim*sizeof(Complex)));
     insist(work_dev);
     std::cout << " work_dev: " << work_dev << std::endl;
@@ -113,11 +111,12 @@ void OmegaWavepacketsOnSingleDevice::setup_potential_on_device()
 {
   if(pot_dev) return;
 
+  const double *pot = MatlabData::potential();
   insist(pot);
   
-  const int &n1 = r1.n;
-  const int &n2 = r2.n;
-  const int &n_theta = theta.n;
+  const int &n1 = MatlabData::r1()->n; //r1.n;
+  const int &n2 = MatlabData::r2()->n; //r2.n;
+  const int &n_theta = MatlabData::theta()->n; 
   checkCudaErrors(cudaMalloc(&pot_dev, n1*n2*n_theta*sizeof(double)));
   insist(pot_dev);
   checkCudaErrors(cudaMemcpy(pot_dev, pot, n1*n2*n_theta*sizeof(double), cudaMemcpyHostToDevice));
@@ -129,18 +128,17 @@ void OmegaWavepacketsOnSingleDevice::setup_omega_wavepackets()
   
   omega_wavepackets.resize(n_omegas, 0);
   
-  Vec<int> omegas(n_omegas, (int *) omega_states.omegas + omega_start_index);
+  Vec<int> omegas(n_omegas, (int *) MatlabData::omega_states()->omegas + omega_start_index);
   
   for(int i = 0; i < n_omegas; i++) {
-    omega_wavepackets[i] = new OmegaWavepacket(omegas[i], 
-					       omega_states.l_max,
-					       coriolis_matrices,
-					       omega_states.associated_legendres[omega_start_index+i],
-					       r1, r2, theta, 
-					       omega_states.wave_packets[omega_start_index+i],
-					       pot_dev, cublas_handle, 
-					       cufft_plan_for_legendre_psi, 
-					       work_dev);
+    omega_wavepackets[i] = 
+      new OmegaWavepacket(omegas[i], 
+			  coriolis_matrices,
+			  MatlabData::omega_states()->associated_legendres[omega_start_index+i],
+			  MatlabData::omega_states()->wave_packets[omega_start_index+i],
+			  pot_dev, cublas_handle, 
+			  cufft_plan_for_legendre_psi, 
+			  work_dev);
     insist(omega_wavepackets[i]);
   }
 }
@@ -202,9 +200,9 @@ void OmegaWavepacketsOnSingleDevice::setup_cufft_plan_for_legendre_psi()
 {
   if(has_cufft_plan_for_legendre_psi) return;
   
-  const int n1 = r1.n;
-  const int n2 = r2.n;
-  const int n_legs = l_max + 1;
+  const int n1 = MatlabData::r1()->n;
+  const int n2 = MatlabData::r2()->n;
+  const int n_legs = MatlabData::omega_states()->l_max + 1;
   
   const int dim [] = { n2, n1 };
   
@@ -276,27 +274,37 @@ void OmegaWavepacketsOnSingleDevice::copy_coriolis_matrices_to_device(const doub
   checkCudaErrors(cudaMemcpy(coriolis_matrices_dev, c, s*sizeof(double), cudaMemcpyHostToDevice));
 }
 
-void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device() //const double time_step)
+void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device() 
 {
 
   setup_device();
   
-  EvolutionUtils::copy_radial_coordinate_to_device(r1_dev, r1.left, r1.dr, r1.mass,
-						   r1.dump_Cd, r1.dump_xd, r1.n);
+  //const RadialCoordinate *r1
+
+  //EvolutionUtils::copy_radial_coordinate_to_device(r1_dev, r1.left, r1.dr, r1.mass, r1.n);
+  //EvolutionUtils::copy_radial_coordinate_to_device(r2_dev, r2.left, r2.dr, r2.mass, r2.n);
+
+  EvolutionUtils::copy_radial_coordinate_to_device(r1_dev, MatlabData::r1());
+  EvolutionUtils::copy_radial_coordinate_to_device(r2_dev, MatlabData::r2());
   
-  EvolutionUtils::copy_radial_coordinate_to_device(r2_dev, r2.left, r2.dr, r2.mass, 
-						   r2.dump_Cd, r2.dump_xd, r2.n);
-  size_t size = 0;
+  //const int n1 = MatlabData::r1()->n;
+  //const int n2 = MatlabData::r2()->n;
 
-  checkCudaErrors(cudaGetSymbolSize(&size, dump1_dev));
-  insist(size/sizeof(double) > r1.n);
-  if(MatlabData::dump1())
-    checkCudaErrors(cudaMemcpyToSymbol(dump1_dev, MatlabData::dump1(), r1.n*sizeof(double)));
-
-  checkCudaErrors(cudaGetSymbolSize(&size, dump2_dev));
-  insist(size/sizeof(double) > r2.n);
-  if(MatlabData::dump2())
-    checkCudaErrors(cudaMemcpyToSymbol(dump2_dev, MatlabData::dump2(), r2.n*sizeof(double)));
+  if(MatlabData::dump1()) {
+    const int n1 = MatlabData::r1()->n;
+    size_t size = 0;
+    checkCudaErrors(cudaGetSymbolSize(&size, dump1_dev));
+    insist(size/sizeof(double) > n1);
+    checkCudaErrors(cudaMemcpyToSymbol(dump1_dev, MatlabData::dump1(), n1*sizeof(double)));
+  }
+  
+  if(MatlabData::dump2()) {
+    const int n2 = MatlabData::r2()->n;
+    size_t size = 0;
+    checkCudaErrors(cudaGetSymbolSize(&size, dump2_dev));
+    insist(size/sizeof(double) > n2);
+    checkCudaErrors(cudaMemcpyToSymbol(dump2_dev, MatlabData::dump2(), n2*sizeof(double)));
+  }
 }
 
 void OmegaWavepacketsOnSingleDevice::evolution_with_potential(const double dt)

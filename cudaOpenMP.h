@@ -14,16 +14,10 @@
 class CudaOpenMPQMMD
 {
 public:
-  CudaOpenMPQMMD(const double *pot, 
-		 OmegaStates &omegas,
-		 const RadialCoordinate &r1,
-		 const RadialCoordinate &r2,
-		 const AngleCoordinate &theta,
-		 EvolutionTime &time,
-		 const Options &options);
-
+  CudaOpenMPQMMD(); 
+  
   ~CudaOpenMPQMMD();
-
+  
   const int &n_gpus() const { return _n_gpus; }
 
   void test();
@@ -37,25 +31,17 @@ public:
 private:
   
   int _n_gpus;
-  const double *pot;
   
-  const RadialCoordinate &r1;
-  const RadialCoordinate &r2;
-  const AngleCoordinate &theta;
-  OmegaStates &omegas;
-  EvolutionTime &time;
-  const Options &options;
-
   void setup_n_gpus();
-
+  
   void setup_wavepackets_on_single_device();
   void destroy_wavepackets_on_single_device();
-
+  
   void devices_synchronize();
   void devices_memory_usage() const;
-
+  
   void setup_coriolis_matrices_and_copy_to_device();
-
+  
   void setup_constant_memory_on_device();
 
   void reset_devices();

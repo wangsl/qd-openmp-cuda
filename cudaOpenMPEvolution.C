@@ -1,5 +1,4 @@
 
-
 /* $Id$ */
 
 #include <iostream>
@@ -7,17 +6,11 @@
 #include <cmath>
 #include <mex.h>
 
-#include "fort.h"
 #include "matlabUtils.h"
 #include "matlabStructures.h"
 #include "matlabArray.h"
-
-#include "cudaOpenMP.h"
-
-//#include "evolutionUtils.h"
 #include "matlabData.h"
-
-void omegas_test(OmegaStates &omegas);
+#include "cudaOpenMP.h"
 
 void mexFunction(int nlhs, mxArray *plhs[],
 		 int nrhs, const mxArray *prhs[])
@@ -33,32 +26,31 @@ void mexFunction(int nlhs, mxArray *plhs[],
   
   mxPtr = mxGetField(prhs[0], 0, "r1");
   insist(mxPtr);
-  RadialCoordinate r1(mxPtr);
+  MatlabData::r1(new RadialCoordinate(mxPtr));
   
   mxPtr = mxGetField(prhs[0], 0, "r2");
   insist(mxPtr);
-  RadialCoordinate r2(mxPtr);
+  MatlabData::r2(new RadialCoordinate(mxPtr));
   
   mxPtr = mxGetField(prhs[0], 0, "theta");
   insist(mxPtr);
-  AngleCoordinate theta(mxPtr);
+  MatlabData::theta(new AngleCoordinate(mxPtr));
   
   mxPtr = mxGetField(prhs[0], 0, "pot");
   insist(mxPtr);
   MatlabArray<double> pot(mxPtr);
-  
-  mxPtr = mxGetField(prhs[0], 0, "psi");
-  insist(mxPtr);
-  MatlabArray<Complex> psi(mxPtr);
+  MatlabData::potential(pot.data);
   
   mxPtr = mxGetField(prhs[0], 0, "time");
   insist(mxPtr);
   EvolutionTime time(mxPtr);
+  MatlabData::time(new EvolutionTime(mxPtr));
   
   mxPtr = mxGetField(prhs[0], 0, "options");
   insist(mxPtr);
   Options options(mxPtr);
-
+  MatlabData::options(new Options(mxPtr));
+  
   mxPtr = mxGetField(prhs[0], 0, "dump1");
   insist(mxPtr);
   DumpFunction dump1(mxPtr);
@@ -72,13 +64,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
   mxPtr = mxGetField(prhs[0], 0, "CRP");
   insist(mxPtr);
   CummulativeReactionProbabilities CRP(mxPtr);
-
+  
   mxPtr = mxGetField(prhs[0], 0, "OmegaStates");
   insist(mxPtr);
-  OmegaStates omegas(mxPtr);
-
-  CudaOpenMPQMMD evolCUDA(pot.data, omegas, r1, r2, theta, time, options);
-
+  MatlabData::omega_states(new OmegaStates(mxPtr));
+  
+  CudaOpenMPQMMD evolCUDA;
   evolCUDA.test();
  
   std::cout.flush();

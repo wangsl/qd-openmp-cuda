@@ -12,12 +12,12 @@ public:
   OmegaWavepacketsOnSingleDevice(const int device_index,
 				 const int omega_start_index,
 				 const int n_omegas,
-				 const double * &pot,
-				 const RadialCoordinate &r1,
-				 const RadialCoordinate &r2,
-				 const AngleCoordinate &theta,
-				 OmegaStates &omegas_states,
-				 const int &l_max,
+				 //const double * &pot,
+				 //const RadialCoordinate &r1,
+				 //const RadialCoordinate &r2,
+				 //const AngleCoordinate &theta,
+				 //OmegaStates &omegas_states,
+				 //const int &l_max,
 				 const Vec<CoriolisMatrixAux> &coriolis_matrices);
   
   ~OmegaWavepacketsOnSingleDevice();
@@ -64,14 +64,9 @@ private:
   int omega_start_index;
   int n_omegas;
 
-  const double * &pot;
-
-  const RadialCoordinate &r1;
-  const RadialCoordinate &r2;
-  const AngleCoordinate &theta;
-  OmegaStates &omega_states;
-
-  const int &l_max;
+  // OmegaStates &omega_states;
+  // const int &l_max;
+  
   const Vec<CoriolisMatrixAux> &coriolis_matrices;
   
   double *pot_dev;

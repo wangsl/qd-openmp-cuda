@@ -6,6 +6,7 @@
 #include "cudaUtils.h"
 #include "cudaOpenMP.h"
 #include "evolutionUtils.h"
+#include "matlabData.h"
 
 inline void divide_into_chunks(const int n, const int m, int *chunks)
 {
@@ -16,6 +17,11 @@ inline void divide_into_chunks(const int n, const int m, int *chunks)
   
   for(int i = 0; i < n-n/m*m; i++)
     chunks[i]++;
+
+  int s = 0;
+  for(int i = 0; i < m; i++)
+    s += chunks[i];
+  insist(s == n);
 }
 
 void CudaOpenMPQMMD::setup_n_gpus()
@@ -32,21 +38,20 @@ void CudaOpenMPQMMD::test()
   
   std::cout << time << std::endl;
   
-  const int &total_steps = time.total_steps;
-  int &steps = time.steps;
-  const double &dt = time.time_step;
+  const int &total_steps = MatlabData::time()->total_steps;
+  int &steps = MatlabData::time()->steps;
+  const double &dt = MatlabData::time()->time_step;
   
   for(int L = 0; L < total_steps; L++) {
     
     std::cout << std::endl << " Step: " << steps << ", " << time_now() << std::endl;
-    
     omega_wavepackets_on_single_device[0]->evolution_test(L, dt);
-
     steps++;
-
-    if(options.wave_to_matlab && steps%options.steps_to_copy_psi_from_device_to_host == 0) {
+    
+    if(MatlabData::options()->wave_to_matlab &&
+       steps%MatlabData::options()->steps_to_copy_psi_from_device_to_host == 0) {
       copy_psi_from_device_to_host();
-      wavepacket_to_matlab(options.wave_to_matlab);
+      wavepacket_to_matlab(MatlabData::options()->wave_to_matlab);
     }
   }
 }
@@ -61,7 +66,7 @@ void CudaOpenMPQMMD::setup_wavepackets_on_single_device()
   const int &n = omega_wavepackets_on_single_device.size();
 
   Vec<int> omegas_index(n_gpus());
-  divide_into_chunks(omegas.omegas.size(), n, omegas_index);
+  divide_into_chunks(MatlabData::omega_states()->omegas.size(), n, omegas_index);
   
   std::cout << " Omegas index: ";
   omegas_index.show_in_one_line();
@@ -69,10 +74,9 @@ void CudaOpenMPQMMD::setup_wavepackets_on_single_device()
   int omega_start_index = 0;
   for(int i_dev = 0; i_dev < n; i_dev++) {
     const int n_omegas = omegas_index[i_dev];
+    
     omega_wavepackets_on_single_device[i_dev] = 
-      new OmegaWavepacketsOnSingleDevice(i_dev, omega_start_index, n_omegas, 
-					 pot, r1, r2, theta, omegas, omegas.l_max,
-					 coriolis_matrices);
+      new OmegaWavepacketsOnSingleDevice(i_dev, omega_start_index, n_omegas, coriolis_matrices);
     
     insist(omega_wavepackets_on_single_device[i_dev]);
     
@@ -119,11 +123,11 @@ void CudaOpenMPQMMD::setup_coriolis_matrices_and_copy_to_device()
 {
   std::cout << " Setup Coriolis Matrices and copy to devices" << std::endl;
   
-  const int &l_max = omegas.l_max;
+  const int &l_max = MatlabData::omega_states()->l_max;
 
   coriolis_matrices.resize(l_max + 1);
 
-  const int &omega_min = omegas.omegas[0];
+  const int &omega_min = MatlabData::omega_states()->omegas[0];
   
   int s = 0;
   for(int l = omega_min; l < l_max+1; l++) {
@@ -132,7 +136,8 @@ void CudaOpenMPQMMD::setup_coriolis_matrices_and_copy_to_device()
     
     coriolis_matrices[l].l = l;
     
-    calculate_coriolis_matrix_dimension(omegas.J, omegas.parity, 
+    calculate_coriolis_matrix_dimension(MatlabData::omega_states()->J,
+					MatlabData::omega_states()->parity,
 					coriolis_matrices[l].l,
 					coriolis_matrices[l].omega_min,
 					coriolis_matrices[l].omega_max);
@@ -155,7 +160,9 @@ void CudaOpenMPQMMD::setup_coriolis_matrices_and_copy_to_device()
     const int n = omega_max - omega_min + 1;
     RMat cor_mat_(n, n+1, cor_mats+coriolis_matrices[l].offset);
 
-    setup_coriolis_matrix(omegas.J, omegas.parity, coriolis_matrices[l].l, cor_mat_);
+    setup_coriolis_matrix(MatlabData::omega_states()->J,
+			  MatlabData::omega_states()->parity,
+			  coriolis_matrices[l].l, cor_mat_);
   }
   
   //omp_set_num_threads(n_gpus());

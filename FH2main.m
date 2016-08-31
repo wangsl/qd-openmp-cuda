@@ -24,9 +24,9 @@ theta.n = int32(200);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
 % J = 0; p = 0; M = 0; % Omegas = [ 0 ]
-% J = 1; p = 1; M = 0; % Omegas = [ 0 1 ]
+J = 1; p = 1; M = 0; % Omegas = [ 0 1 ]
 % J = 1; p = 0; M = 0; % Omegas = [ 1 ]
-J = 2; p = 0; M = 0; % Omegas = [ 0 1 2 ]
+% J = 2; p = 0; M = 0; % Omegas = [ 0 1 2 ]
 % J = 2; p = 1; M = 0; % OMegas = [ 1 2 ]
 % J = 3; p = 1; M = 0; % Omegas = [ 0 1 2 3 ]
 % J = 3; p = 0; M = 0; % Omegas = [ 1 2 3 ]
@@ -67,13 +67,13 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(10000);
+time.total_steps = int32(100);
 time.time_step = 1.0;
 time.steps = int32(0);
 
 % r1: R
 
-r1.n = int32(512);
+r1.n = int32(256);
 r1.r = linspace(0.2, 14.0, r1.n);
 r1.left = r1.r(1);
 r1.dr = r1.r(2) - r1.r(1);
@@ -96,7 +96,7 @@ dump1.dump = WoodsSaxon(dump1.Cd, dump1.xd, r1.r);
 % r2: r
 
 %r2.n = int32(1024);
-r2.n = int32(512);
+r2.n = int32(256);
 r2.r = linspace(0.2, 12.0, r2.n);
 r2.left = r2.r(1);
 r2.dr = r2.r(2) - r2.r(1);

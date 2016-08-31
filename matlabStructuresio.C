@@ -1,5 +1,5 @@
 
-/* created at: 2016-08-30 22:11:51 */
+/* created at: 2016-08-31 14:16:43 */
 
 #include <iostream>
 using namespace std;
@@ -25,8 +25,6 @@ void RadialCoordinate::write_fields(ostream &s) const
   s << Indent() << "left " << left << "\n";
   s << Indent() << "dr " << dr << "\n";
   s << Indent() << "mass " << mass << "\n";
-  s << Indent() << "dump_Cd " << dump_Cd << "\n";
-  s << Indent() << "dump_xd " << dump_xd << "\n";
 }
 
 ostream & operator <<(ostream &s, const AngleCoordinate &c)

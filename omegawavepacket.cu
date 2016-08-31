@@ -4,6 +4,7 @@
 #include "deviceConst.h"
 #include "cudaUtils.h"
 #include "cudaMath.h"
+#include "matlabData.h"
 
 #include "evolutionCUDAaux.cu"
 
@@ -14,20 +15,20 @@
  ******/
 
 OmegaWavepacket::OmegaWavepacket(const int &omega_,
-				 const int &l_max_,
 				 const Vec<CoriolisMatrixAux> &coriolis_matrices_,
 				 const RMat &associated_legendres_,
-				 const RadialCoordinate &r1_,
-				 const RadialCoordinate &r2_,
-				 const AngleCoordinate &theta_,
 				 Complex *psi_, 
 				 const double *pot_dev_,
 				 cublasHandle_t &cublas_handle_,
 				 cufftHandle &cufft_plan_for_legendre_psi_,
 				 Complex * &work_dev_) :
-  omega(omega_), l_max(l_max_), coriolis_matrices(coriolis_matrices_),
+  omega(omega_), 
+  l_max(MatlabData::omega_states()->l_max),
+  coriolis_matrices(coriolis_matrices_),
   associated_legendres(associated_legendres_),
-  r1(r1_), r2(r2_), theta(theta_),
+  r1(*MatlabData::r1()), 
+  r2(*MatlabData::r2()),
+  theta(*MatlabData::theta()),
   psi(psi_), 
   pot_dev(pot_dev_), psi_dev(0),
   legendre_psi_dev(0), associated_legendres_dev(0), 

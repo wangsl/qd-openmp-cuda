@@ -21,8 +21,8 @@ public:
   const double &left; // out
   const double &dr; // out
   const double &mass; // out
-  const double &dump_Cd; // out
-  const double &dump_xd; // out
+  //const double &dump_Cd; 
+  //const double &dump_xd;
   
   RadialCoordinate(const mxArray *mx);
   

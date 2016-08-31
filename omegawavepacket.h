@@ -15,12 +15,8 @@ public:
   friend class OmegaWavepacketsOnSingleDevice;
 
   OmegaWavepacket(const int &omega,
-		  const int &l_max,
 		  const Vec<CoriolisMatrixAux> &coriolis_matrices,
 		  const RMat &associated_legendres,
-		  const RadialCoordinate &r1,
-		  const RadialCoordinate &r2,
-		  const AngleCoordinate &theta,
 		  Complex *psi, 
 		  const double *pot_dev,
 		  cublasHandle_t &cublas_handle,

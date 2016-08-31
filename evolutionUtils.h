@@ -18,7 +18,8 @@ inline std::ostream & operator <<(std::ostream &s, const CoriolisMatrixAux &c)
 	   << " offset: " << c.offset;
 }
 
-void calculate_coriolis_matrix_dimension(const int J, const int p, const int j, int &omega_min, int &omega_max);
+void calculate_coriolis_matrix_dimension(const int J, const int p, const int j, 
+					 int &omega_min, int &omega_max);
 void setup_coriolis_matrix(const int J, const int p, const int j, RMat &cor_mat);
 
 #ifdef __NVCC__
@@ -30,25 +31,18 @@ namespace EvolutionUtils {
     double left;
     double dr;
     double mass;
-    double dump_Cd;
-    double dump_xd;
     int n;
   };
   
   inline void copy_radial_coordinate_to_device(const RadialCoordinate &r_dev, 
-                                               const double &left, const double &dr,
-                                               const double &mass, 
-                                               const double &dump_Cd, const double &dump_xd,
-                                               const int &n)
+					       const ::RadialCoordinate *r)
   {
-    RadialCoordinate r;
-    r.left = left;
-    r.dr = dr;
-    r.mass = mass;
-    r.dump_Cd = dump_Cd;
-    r.dump_xd = dump_xd;
-    r.n = n;
-    checkCudaErrors(cudaMemcpyToSymbol(r_dev, &r, sizeof(RadialCoordinate)));
+    RadialCoordinate r_;
+    r_.left = r->left;
+    r_.dr = r->dr;
+    r_.mass = r->mass;
+    r_.n = r->n;
+    checkCudaErrors(cudaMemcpyToSymbol(r_dev, &r_, sizeof(RadialCoordinate)));
   }
 }
 
@@ -63,3 +57,5 @@ extern __constant__ double dump2_dev[1024];
 #endif /* __NVCC__ */
 
 #endif /* EVOLUTION_UTILS_H */
+
+
