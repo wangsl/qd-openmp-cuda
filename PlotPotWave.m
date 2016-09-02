@@ -8,7 +8,7 @@ persistent hpsi
 
 [ psiReal, psiImag ] = WavePacket(psi);
 
-k = 1;
+k = 110;
 
 psiReal= psiReal(:,:,k)';
 
@@ -25,7 +25,7 @@ if isempty(has_PotWavePlot)
   hold on;
   
   [ ~, hpsi ] = contour(r1.r, r2.r, psiReal, ...
-			[ -2.0:0.02:-0.001 0.001:0.02:1.0 ], 'zDataSource', 'psiReal');
+			[ -2.0:0.02:-0.01 0.01:0.02:1.0 ], 'zDataSource', 'psiReal');
   set(hpsi, 'LineWidth', 1.5);
   set(gca, 'CLim', [-0.5, 0.5]);
   %axis square
@@ -36,7 +36,4 @@ end
 
 refreshdata(hpsi, 'caller');
 drawnow
-
-
-
 

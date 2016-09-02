@@ -17,19 +17,19 @@ fprintf(' Gaussian wavepacket module: %.15f\n', sum(conj(g).*g)*R1.dr);
 
 [ eH2, psiH2 ] = H2VibRotWaveFunction(R2, jRot, nVib);
 
-fprintf(' H2 virational energy: %.15f\n', eH2);
+fprintf(' H2 vibrational energy: %.15f\n', eH2);
 
 fprintf(' H2 vibrational function module: %.15f\n', sum(psiH2.^2)*R2.dr)
 
-P = LegendreP(jRot, Theta.x);
-P = sqrt(jRot+1/2)*P;
+%P = LegendreP(jRot, Theta.x);
+%P = sqrt(jRot+1/2)*P;
 
-%P = legendre(jRot, Theta.x, 'norm');
-%P = P(2, :)';
+P = legendre(jRot, Theta.x, 'norm');
+P = P(4, :);
 
 %sum(P.^2.*Theta.w)
 
-psiP = psiH2*P';
+psiP = psiH2*P;
 psiP = reshape(psiP, [1, numel(psiP)]);
 
 psi = zeros(2*n1, n2*nTheta);

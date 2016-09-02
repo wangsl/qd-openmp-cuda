@@ -15,20 +15,16 @@ class RadialCoordinate
 {
 public:
   
-  // friend class TimeEvolution;
-
   const int &n; // out
   const double &left; // out
   const double &dr; // out
   const double &mass; // out
-  //const double &dump_Cd; 
-  //const double &dump_xd;
   
   RadialCoordinate(const mxArray *mx);
   
 private:
   const mxArray *mx;
-
+  
   // to prevent assigment and copy operation
   RadialCoordinate(const RadialCoordinate &);
   RadialCoordinate & operator =(const RadialCoordinate &);
@@ -41,8 +37,6 @@ private:
 class AngleCoordinate
 {
 public:
-  
-  // friend class TimeEvolution;
   
   const int &n; // out
   const int &m; // out
@@ -68,8 +62,6 @@ class EvolutionTime
 {
 public:
 
-  // friend class TimeEvolution;
-
   const int &total_steps; // out
   const double &time_step; // out
   int &steps; // out
@@ -91,8 +83,6 @@ class Options
 {
 public:
   
-  // friend class TimeEvolution;
-
   char *wave_to_matlab; // out
   char *test_name; // out
   const int &steps_to_copy_psi_from_device_to_host; // out
@@ -115,8 +105,6 @@ class DumpFunction
 {
 public:
   
-  // friend class TimeEvolution;
-
   DumpFunction(const mxArray *mx);
   ~DumpFunction();
 
@@ -130,8 +118,6 @@ private:
 class CummulativeReactionProbabilities
 {
 public:
-
-  // friend class TimeEvolution;
 
   RVec energies; // out
   RVec eta_sq; // out

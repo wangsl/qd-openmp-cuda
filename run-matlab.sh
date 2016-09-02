@@ -16,7 +16,7 @@ export CUDA_VISIBLE_DEVICES="0"
 # for((i=0; i<100; i++)) { taskset -c 0-19 matlab -nodisplay -r "FH2main; exit" } 2>&1 | tee stdout.log; exit
 
 if [ "$1" == "-matlab" ]; then
-    taskset -c 0-19 matlab 
+    taskset -c 0-19 matlab > /dev/null 2>&1
 elif [ "$1" == "-nodesktop" ]; then
     taskset -c 0-19 matlab -nodesktop -r "FH2main; exit" 2>&1 | tee stdout.log
 else

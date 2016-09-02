@@ -20,16 +20,17 @@ setenv('HSW_DATA_DIR', ...
 global H2eV 
 global FH2Data
 
-theta.n = int32(200);
+theta.n = int32(220);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
 % J = 0; p = 0; M = 0; % Omegas = [ 0 ]
-J = 1; p = 1; M = 0; % Omegas = [ 0 1 ]
+% J = 1; p = 1; M = 0; % Omegas = [ 0 1 ]
 % J = 1; p = 0; M = 0; % Omegas = [ 1 ]
 % J = 2; p = 0; M = 0; % Omegas = [ 0 1 2 ]
 % J = 2; p = 1; M = 0; % OMegas = [ 1 2 ]
 % J = 3; p = 1; M = 0; % Omegas = [ 0 1 2 3 ]
 % J = 3; p = 0; M = 0; % Omegas = [ 1 2 3 ]
+J = 5; p = 0; M = 0; % Omegas = [ 1 2 3 4 5 ]
 
 LMax = 180;
 
@@ -51,8 +52,8 @@ OmegaStates.omegas = int32(Omegas);
 OmegaStates.n_omegas_max = int32(numel(Omegas));
 OmegaStates.associated_legendres = P;
 
-jRot = 5;
-nVib = 0;
+jRot = 10;
+nVib = 3;
 
 H2eV = 27.21138505;
 
@@ -67,23 +68,23 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(100);
+time.total_steps = int32(50000);
 time.time_step = 1.0;
 time.steps = int32(0);
 
 % r1: R
 
 r1.n = int32(256);
-r1.r = linspace(0.2, 14.0, r1.n);
+r1.r = linspace(0.01, 14.0, r1.n);
 r1.left = r1.r(1);
 r1.dr = r1.r(2) - r1.r(1);
 r1.mass = masses(1)*(masses(2)+masses(3))/(masses(1)+masses(2)+ ...
 					   masses(3));
-r1.dump_Cd = 4.0;
-r1.dump_xd = 12.0;
+%r1.dump_Cd = 4.0;
+%r1.dump_xd = 12.0;
 
 r1.r0 = 8.0;
-r1.k0 = 2.0; %0.2;
+r1.k0 = 6.0; %0.2;
 r1.delta = 0.2;
 
 eGT = 1/(2*r1.mass)*(r1.k0^2 + 1/(2*r1.delta^2))*H2eV;
@@ -102,8 +103,8 @@ r2.left = r2.r(1);
 r2.dr = r2.r(2) - r2.r(1);
 r2.mass = masses(2)*masses(3)/(masses(2)+masses(3));
 
-r2.dump_Cd = 4.0;
-r2.dump_xd = 10.0;
+%r2.dump_Cd = 4.0;
+%r2.dump_xd = 10.0;
 
 dump2.Cd = 4.0;
 dump2.xd = 10.0;
@@ -145,7 +146,7 @@ theta.associated_legendre = theta.associated_legendre';
 
 options.wave_to_matlab = 'FH2Matlab.m';
 options.CRPMatFile = sprintf('CRPMat-j%d-v%d.mat', jRot, nVib);
-options.steps_to_copy_psi_from_device_to_host = int32(100);
+options.steps_to_copy_psi_from_device_to_host = int32(20);
 options.plot = true;
 
 % setup potential energy surface and initial wavepacket
@@ -155,10 +156,14 @@ pot = FH2PESJacobi(r1.r, r2.r, acos(theta.x), masses);
 fprintf(' Setup Initial Wave Packet\n');
 [ psi, eH2, psiH2 ] = InitWavePacket(r1, r2, theta, jRot, nVib);
 
+if options.plot 
+  PlotPotWave(r1, r2, pot, psi);
+end
+
 nOmegas = numel(OmegaStates.omegas);
 OmegaStates.wave_packets = zeros([size(psi), nOmegas]);
 if 0 == 0
-  OmegaStates.wave_packets(:,:,:,1) = psi;
+  OmegaStates.wave_packets(:,:,:,3) = psi;
 else
   for i = 1 : nOmegas
     OmegaStates.wave_packets(:,:,:,i) = psi;
@@ -166,10 +171,6 @@ else
 end
 %}
 size(OmegaStates.wave_packets)
-
-if options.plot 
-  PlotPotWave(r1, r2, pot, psi);
-end
 
 % cummulative reaction probabilities
 

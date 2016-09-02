@@ -64,7 +64,7 @@ void CudaOpenMPQMMD::setup_wavepackets_on_single_device()
   omega_wavepackets_on_single_device.resize(n_gpus(), 0);
   
   const int &n = omega_wavepackets_on_single_device.size();
-
+  
   Vec<int> omegas_index(n_gpus());
   divide_into_chunks(MatlabData::omega_states()->omegas.size(), n, omegas_index);
   

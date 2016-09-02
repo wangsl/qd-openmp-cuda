@@ -23,10 +23,9 @@ public:
 		  cufftHandle &cufft_plan_for_legendre_psi,
 		  Complex * &work_dev
 		  );
-
-
+  
   ~OmegaWavepacket();
-
+  
   const double &wavepacket_module() const  { return _wavepacket_module; }
   const double &potential_energy() const { return _potential_energy; }
   const double &kinetic_energy() const { return _kinetic_energy; }
@@ -38,39 +37,6 @@ public:
   
   const double &wavepacket_module_for_legendre_psi() const      
   { return _wavepacket_module_for_legendre_psi; }
-
-private:
-
-  void calculate_wavepacket_module();
-  void calculate_potential_energy();
-  void calculate_kinetic_energy_for_legendre_psi();
-  void calculate_rotational_energy_for_legendre_psi();
-  
-  void calculate_wavepacket_module_for_legendre_psi();
-  
-  void calculate_coriolis_energy_for_legendre_psi(const int omega1,
-						  const double *coriolis_matrices_dev,
-						  const Complex *legendre_psi_omega1);
-  
-  void calculate_coriolis_energy_for_legendre_psi_2(const int omega1,
-						    const double *coriolis_matrices_dev,
-						    const Complex *legendre_psi_omega1);
-  
-  void calculate_coriolis_energy_for_legendre_psi_3(const int omega1,
-						  const double *coriolis_matrices_dev,
-						  const Complex *legendre_psi_omega1);
-  
-  
-  void forward_legendre_transform();
-  void backward_legendre_transform();
-  
-  void forward_fft_for_legendre_psi();
-  void backward_fft_for_legendre_psi(const int do_scale = 0);
-
-  void copy_psi_from_host_to_device();
-  void copy_psi_from_device_to_host();
-
-  void dump_wavepacket();
 
 private:
   
@@ -123,8 +89,30 @@ private:
 			       const double *coriolis_matrices_dev,
 			       const Complex *legendre_psi_omega1);
 
+  void dump_wavepacket();
+
   void zero_psi_dev();
   void update_evolution_with_coriolis();
+
+  void calculate_wavepacket_module();
+  void calculate_potential_energy();
+  void calculate_kinetic_energy_for_legendre_psi();
+  void calculate_rotational_energy_for_legendre_psi();
+  
+  void calculate_wavepacket_module_for_legendre_psi();
+  
+  void calculate_coriolis_energy_for_legendre_psi(const int omega1,
+						  const double *coriolis_matrices_dev,
+						  const Complex *legendre_psi_omega1);
+  
+  void forward_legendre_transform();
+  void backward_legendre_transform();
+  
+  void forward_fft_for_legendre_psi();
+  void backward_fft_for_legendre_psi(const int do_scale = 0);
+  
+  void copy_psi_from_host_to_device();
+  void copy_psi_from_device_to_host();
 };
 
 #endif /* OMEG_WAVEPACKET_H */
