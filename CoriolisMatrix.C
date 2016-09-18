@@ -9,12 +9,12 @@
 
 #include "evolutionUtils.h"
 
-/*
-  Refercens:
-  J. Phys. Chem. A, 102, 9372-9379 (1998)
-  John Zhang  Theory and Application of Quantum Molecular Dynamics P343
-  http://www.netlib.org/lapack/explore-html/d7/d48/dstev_8f.html
-*/
+/****
+ * Refercens:
+ * J. Phys. Chem. A, 102, 9372-9379 (1998)
+ * John Zhang  Theory and Application of Quantum Molecular Dynamics P343
+ * http://www.netlib.org/lapack/explore-html/d7/d48/dstev_8f.html
+ ****/
 
 extern "C" void FORT(dstev)(const char *JOBZ, const FInt &N, double *D, 
 			    double *E, double *Z, const FInt &LDZ, 

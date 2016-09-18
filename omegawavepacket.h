@@ -19,6 +19,7 @@ public:
 		  const RMat &associated_legendres,
 		  Complex *psi, 
 		  const double *pot_dev,
+		  double * &coriolis_matrices_dev,
 		  cublasHandle_t &cublas_handle,
 		  cufftHandle &cufft_plan_for_legendre_psi,
 		  Complex * &work_dev
@@ -38,10 +39,14 @@ public:
   const double &wavepacket_module_for_legendre_psi() const      
   { return _wavepacket_module_for_legendre_psi; }
 
+  const int &omega_value() const { return omega; }
+  
+  const Complex *legendre_psi_dev_pointer() const { return legendre_psi_dev; }
+
 private:
   
   Complex *psi;
-
+  
   const int &omega;
   const int &l_max;
   const Vec<CoriolisMatrixAux> &coriolis_matrices;
@@ -52,13 +57,14 @@ private:
   const AngleCoordinate &theta;
   
   const double *pot_dev;
+  double * &coriolis_matrices_dev;
   Complex *psi_dev;
   Complex *legendre_psi_dev;
   Complex *associated_legendres_dev;
   Complex *weighted_associated_legendres_dev;
 
   Complex * &work_dev;
-
+  
   cublasHandle_t &cublas_handle;
   cufftHandle &cufft_plan_for_legendre_psi;
 
@@ -81,17 +87,17 @@ private:
   
   void evolution_with_coriolis(const double dt,
 			       const int l, const int omega1,
-			       const double *coriolis_matrices_dev,
 			       const Complex *legendre_psi_omega1,
 			       cudaStream_t *stream = 0); 
   
   void evolution_with_coriolis(const double dt, const int omega1,
-			       const double *coriolis_matrices_dev,
-			       const Complex *legendre_psi_omega1);
+			       const Complex *legendre_psi_omega1,
+			       cudaStream_t *stream = 0);
 
   void dump_wavepacket();
 
-  void zero_psi_dev();
+  //void zero_psi_dev();
+  void zero_coriolis_variables();
   void update_evolution_with_coriolis();
 
   void calculate_wavepacket_module();
@@ -101,9 +107,14 @@ private:
   
   void calculate_wavepacket_module_for_legendre_psi();
   
+#if 0
   void calculate_coriolis_energy_for_legendre_psi(const int omega1,
-						  const double *coriolis_matrices_dev,
 						  const Complex *legendre_psi_omega1);
+#endif
+  
+  void calculate_coriolis_energy_for_legendre_psi(const int omega1,
+						  const Complex *legendre_psi_omega1,
+						  cudaStream_t *stream = 0);
   
   void forward_legendre_transform();
   void backward_legendre_transform();

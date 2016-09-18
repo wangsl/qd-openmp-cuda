@@ -38,5 +38,3 @@ psi(1:2:end, :) = real(g).'*psiP;
 psi(2:2:end, :) = imag(g).'*psiP;
 
 psi = reshape(psi, [2*n1, n2, nTheta]);
-
-

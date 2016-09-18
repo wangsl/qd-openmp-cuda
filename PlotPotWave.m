@@ -8,7 +8,7 @@ persistent hpsi
 
 [ psiReal, psiImag ] = WavePacket(psi);
 
-k = 110;
+k = 40;
 
 psiReal= psiReal(:,:,k)';
 

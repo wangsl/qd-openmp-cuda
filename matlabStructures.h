@@ -21,6 +21,7 @@ public:
   const double &mass; // out
   
   RadialCoordinate(const mxArray *mx);
+  ~RadialCoordinate() { if(mx) mx = 0; }
   
 private:
   const mxArray *mx;
@@ -45,6 +46,7 @@ public:
   RMat associated_legendre; 
   
   AngleCoordinate(const mxArray *mx);
+  ~AngleCoordinate() { if(mx) mx = 0; }
   
 private:
   const mxArray *mx;
@@ -52,7 +54,7 @@ private:
   // to prevent assigment and copy operation
   AngleCoordinate(const AngleCoordinate &);
   AngleCoordinate & operator =(const AngleCoordinate &);
-
+  
   /* IO */
   friend ostream & operator <<(ostream &s, const AngleCoordinate &c);
   void write_fields(ostream &s) const;
@@ -65,9 +67,10 @@ public:
   const int &total_steps; // out
   const double &time_step; // out
   int &steps; // out
-
+  
   EvolutionTime(const mxArray *mx);
-
+  ~EvolutionTime() { if(mx) mx = 0; }
+  
 private:
   const mxArray *mx;
 
@@ -86,6 +89,7 @@ public:
   char *wave_to_matlab; // out
   char *test_name; // out
   const int &steps_to_copy_psi_from_device_to_host; // out
+  const int &use_p2p_async; // out
 
   Options(const mxArray *mx);
   ~Options();
@@ -111,7 +115,6 @@ public:
   const double *dump; 
 
 private:
-  
   const mxArray *mx;
 };
 

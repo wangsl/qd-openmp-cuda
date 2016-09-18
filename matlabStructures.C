@@ -20,8 +20,6 @@ RadialCoordinate::RadialCoordinate(const mxArray *mx) :
   left(*(double *) mxGetData(mx, "left")),
   dr(*(double *) mxGetData(mx, "dr")),
   mass(*(double *) mxGetData(mx, "mass"))
-  //dump_Cd(*(double *) mxGetData(mx, "dump_Cd")),
-  //dump_xd(*(double *) mxGetData(mx, "dump_xd"))
 { }
 
 AngleCoordinate::AngleCoordinate(const mxArray *mx) :
@@ -49,7 +47,8 @@ Options::Options(const mxArray *mx) :
   mx(mx),
   wave_to_matlab(0),
   test_name(0),
-  steps_to_copy_psi_from_device_to_host(*(int *) mxGetData(mx, "steps_to_copy_psi_from_device_to_host"))
+  steps_to_copy_psi_from_device_to_host(*(int *) mxGetData(mx, "steps_to_copy_psi_from_device_to_host")),
+  use_p2p_async(*(int *) mxGetData(mx, "use_p2p_async"))
 {
   wave_to_matlab = mxGetString(mx, "wave_to_matlab");
   if(wave_to_matlab)
@@ -60,6 +59,7 @@ Options::Options(const mxArray *mx) :
 
 Options::~Options()
 {
+  mx = 0; 
   if(wave_to_matlab) { delete [] wave_to_matlab; wave_to_matlab = 0; }
   if(test_name) { delete [] test_name; test_name = 0; }
 }
@@ -73,6 +73,7 @@ DumpFunction::DumpFunction(const mxArray *mx) :
 
 DumpFunction::~DumpFunction()
 { 
+  mx = 0; 
   if(dump) dump = 0;
 }
 

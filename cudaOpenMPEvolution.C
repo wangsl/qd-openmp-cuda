@@ -18,7 +18,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
   const int np = std::cout.precision();
   std::cout.precision(12);
   
-  std::cout << " Quantum Dynamics Time evolotion with CUDA and OpenMP" << std::endl;
+  std::cout << " Quantum Dynamics Time evolotion with CUDA and OpenMP\n" << std::endl;
 
   insist(nrhs == 1);
 
@@ -70,7 +70,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
   MatlabData::omega_states(new OmegaStates(mxPtr));
   
   CudaOpenMPQMMD evolCUDA;
-  evolCUDA.test();
+  //evolCUDA.test();
+  evolCUDA.test_multiple_cards();
+  //evolCUDA.p2p_test();
  
   std::cout.flush();
   std::cout.precision(np);

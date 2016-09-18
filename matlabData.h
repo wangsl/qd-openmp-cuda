@@ -11,10 +11,10 @@ namespace MatlabData
   
   const RadialCoordinate *r2();
   void r2(const RadialCoordinate *r);
-                  
+  
   const AngleCoordinate *theta();
   void theta(const AngleCoordinate *th);
-
+  
   const double *potential();
   void potential(const double *p);
 

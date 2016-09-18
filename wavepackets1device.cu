@@ -28,6 +28,7 @@ OmegaWavepacketsOnSingleDevice(const int device_index_,
   pot_dev(0),
   work_dev(0),
   coriolis_matrices_dev(0),
+  work_dev_2(0),
   has_cublas_handle(0),
   has_cufft_plan_for_legendre_psi(0)
 {
@@ -58,7 +59,8 @@ void OmegaWavepacketsOnSingleDevice::setup_data_on_device()
 {
   setup_device();
 
-  std::cout << " setup OmegaWavepacketsOnSingleDevice on device: " << device_index() << std::endl;
+  std::cout << " Setup OmegaWavepacketsOnSingleDevice on device: "
+	    << device_index() << std::endl;
 
   if(!work_dev) {
     const int n1 = MatlabData::r1()->n;
@@ -67,7 +69,6 @@ void OmegaWavepacketsOnSingleDevice::setup_data_on_device()
     const int max_dim = n1*n2 + n_theta + 1024;
     checkCudaErrors(cudaMalloc(&work_dev, max_dim*sizeof(Complex)));
     insist(work_dev);
-    std::cout << " work_dev: " << work_dev << std::endl;
   }
   
   setup_potential_on_device();
@@ -79,12 +80,9 @@ void OmegaWavepacketsOnSingleDevice::destroy_data_on_device()
 {
   setup_device();
   
-  std::cout << " Destroy OmegaWavepacketsOnSingleDevice on device: " << device_index() << std::endl;
+  std::cout << " Destroy OmegaWavepacketsOnSingleDevice on device: " 
+	    << device_index() << std::endl;
   
-  _CUDA_FREE_(pot_dev);
-  _CUDA_FREE_(work_dev);
-  _CUDA_FREE_(coriolis_matrices_dev);
-
   for(int i = 0; i < omega_wavepackets.size(); i++) {
     if(omega_wavepackets[i]) { 
       delete omega_wavepackets[i]; 
@@ -92,6 +90,11 @@ void OmegaWavepacketsOnSingleDevice::destroy_data_on_device()
     }
   }
   omega_wavepackets.resize(0);
+  
+  _CUDA_FREE_(pot_dev);
+  _CUDA_FREE_(work_dev);
+  _CUDA_FREE_(coriolis_matrices_dev);
+  _CUDA_FREE_(work_dev_2);
   
   destroy_cublas_handle();
   destroy_cufft_plan_for_legendre_psi();
@@ -109,13 +112,14 @@ void OmegaWavepacketsOnSingleDevice::setup_potential_on_device()
   const int &n_theta = MatlabData::theta()->n; 
   checkCudaErrors(cudaMalloc(&pot_dev, n1*n2*n_theta*sizeof(double)));
   insist(pot_dev);
-  checkCudaErrors(cudaMemcpy(pot_dev, pot, n1*n2*n_theta*sizeof(double), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpyAsync(pot_dev, pot, n1*n2*n_theta*sizeof(double), 
+				  cudaMemcpyHostToDevice));
 }
 
 void OmegaWavepacketsOnSingleDevice::setup_omega_wavepackets()
 {
   insist(!omega_wavepackets.size());
-  
+
   omega_wavepackets.resize(n_omegas, 0);
   
   Vec<int> omegas(n_omegas, (int *) MatlabData::omega_states()->omegas + omega_start_index);
@@ -127,6 +131,7 @@ void OmegaWavepacketsOnSingleDevice::setup_omega_wavepackets()
 			  MatlabData::omega_states()->associated_legendres[omega_start_index+i],
 			  MatlabData::omega_states()->wave_packets[omega_start_index+i],
 			  pot_dev, 
+			  coriolis_matrices_dev,
 			  cublas_handle, 
 			  cufft_plan_for_legendre_psi, 
 			  work_dev);
@@ -139,7 +144,7 @@ void OmegaWavepacketsOnSingleDevice::setup_cublas_handle()
   if(has_cublas_handle) return;
 
   std::cout << " Setup CUBLAS handle on device: " << current_device_index() << std::endl;
-
+  
   insist(cublasCreate(&cublas_handle) == CUBLAS_STATUS_SUCCESS);
   has_cublas_handle = 1;
 }
@@ -253,7 +258,6 @@ void OmegaWavepacketsOnSingleDevice::copy_coriolis_matrices_to_device(const doub
   
   checkCudaErrors(cudaMalloc(&coriolis_matrices_dev, s*sizeof(double)));
   insist(coriolis_matrices_dev);
-  
   checkCudaErrors(cudaMemcpy(coriolis_matrices_dev, c, s*sizeof(double),
 			     cudaMemcpyHostToDevice));
 }
@@ -270,7 +274,7 @@ void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device()
     size_t size = 0;
     checkCudaErrors(cudaGetSymbolSize(&size, dump1_dev));
     insist(size/sizeof(double) > n1);
-    checkCudaErrors(cudaMemcpyToSymbol(dump1_dev, MatlabData::dump1(), n1*sizeof(double)));
+    checkCudaErrors(cudaMemcpyToSymbolAsync(dump1_dev, MatlabData::dump1(), n1*sizeof(double)));
   }
   
   if(MatlabData::dump2()) {
@@ -278,12 +282,13 @@ void OmegaWavepacketsOnSingleDevice::setup_constant_memory_on_device()
     size_t size = 0;
     checkCudaErrors(cudaGetSymbolSize(&size, dump2_dev));
     insist(size/sizeof(double) > n2);
-    checkCudaErrors(cudaMemcpyToSymbol(dump2_dev, MatlabData::dump2(), n2*sizeof(double)));
+    checkCudaErrors(cudaMemcpyToSymbolAsync(dump2_dev, MatlabData::dump2(), n2*sizeof(double)));
   }
 }
 
 void OmegaWavepacketsOnSingleDevice::evolution_with_potential(const double dt)
 {
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->evolution_with_potential(dt);
@@ -291,6 +296,7 @@ void OmegaWavepacketsOnSingleDevice::evolution_with_potential(const double dt)
 
 void OmegaWavepacketsOnSingleDevice::evolution_with_kinetic(const double dt)
 {
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->evolution_with_kinetic(dt);
@@ -298,6 +304,7 @@ void OmegaWavepacketsOnSingleDevice::evolution_with_kinetic(const double dt)
 
 void OmegaWavepacketsOnSingleDevice::evolution_with_rotational(const double dt)
 {
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->evolution_with_rotational(dt);
@@ -305,6 +312,7 @@ void OmegaWavepacketsOnSingleDevice::evolution_with_rotational(const double dt)
 
 void OmegaWavepacketsOnSingleDevice::calculate_rotational_energies_for_legendre_psi()
 {
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->calculate_rotational_energy_for_legendre_psi();
@@ -312,6 +320,7 @@ void OmegaWavepacketsOnSingleDevice::calculate_rotational_energies_for_legendre_
 
 void OmegaWavepacketsOnSingleDevice::calculate_kinetic_energies_for_legendre_psi()
 {
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->calculate_kinetic_energy_for_legendre_psi();
@@ -319,10 +328,7 @@ void OmegaWavepacketsOnSingleDevice::calculate_kinetic_energies_for_legendre_psi
 
 void OmegaWavepacketsOnSingleDevice::dump_wavepacket()
 {
-  if(!MatlabData::dump_wavepacket()) return;
-  
-  std::cout << " Dump wavepacket" << std::endl;
-
+  setup_device();
   const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->dump_wavepacket();
@@ -368,11 +374,11 @@ void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double
   if(step == 0) evolution_with_potential(-dt/2);
   
   evolution_with_potential(dt);
-  
+
   forward_legendre_transform();
-  
+
   evolution_with_rotational(dt/4);
-  
+
   evolution_with_coriolis(dt/2);
   
   evolution_with_rotational(dt/4);
@@ -400,9 +406,34 @@ void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double
   calculate_wavepacket_potential_energies();
 
   calculate_wavepacket_modules();
+
+  print_energies(1);
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_coriolis(const double dt)
+{
+  zero_coriolis_variables();
+
+  const int n_omegas = omega_wavepackets.size();
+  
+  for(int i = 0; i < n_omegas; i++) {
+    for(int j = 0; j < n_omegas; j++) {
+      omega_wavepackets[i]->evolution_with_coriolis(dt, omega_wavepackets[j]->omega,
+						    omega_wavepackets[j]->legendre_psi_dev);
+    }
+  }
+  
+  for(int i = 0; i < n_omegas; i++) 
+    omega_wavepackets[i]->update_evolution_with_coriolis();
+}
+
+void OmegaWavepacketsOnSingleDevice::print_energies(const int print)
+{
+  
+  setup_device();
   
   std::ios_base::fmtflags old_flags = std::cout.flags();
-
+  
   const int &n = omega_wavepackets.size();
   
   total_module = 0.0;
@@ -422,45 +453,75 @@ void OmegaWavepacketsOnSingleDevice::evolution_test(const int step, const double
     total_energy += omega_wavepackets[i]->total_energy();
   }
   
-  std::cout << " Total: " << total_module << " " << total_energy
-	    << " " << total_energy/total_module << std::endl;
-  
-  std::cout.flags(old_flags);
+  if(print) { 
+    std::cout << " Total: " << total_module << " " << total_energy << std::endl;
+    std::cout.flags(old_flags);
+  }
 }
 
-void OmegaWavepacketsOnSingleDevice::evolution_with_coriolis(const double dt)
+void OmegaWavepacketsOnSingleDevice::setup_work_dev_2()
 {
-  const int n_omegas = omega_wavepackets.size();
+  if(work_dev_2) return;
+
+  setup_device();
   
+  const int &n1 = MatlabData::r1()->n; 
+  const int &n2 = MatlabData::r2()->n;
+  const int &n_theta = MatlabData::theta()->n; 
+  
+  checkCudaErrors(cudaMalloc(&work_dev_2, n1*n2*n_theta*sizeof(Complex)));
+  insist(work_dev_2);
+  checkCudaErrors(cudaMemsetAsync(work_dev_2, 0, n1*n2*n_theta*sizeof(Complex)));
+}
+
+void OmegaWavepacketsOnSingleDevice::zero_coriolis_variables()
+{
+  setup_device();
+  const int &n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
-    omega_wavepackets[i]->zero_psi_dev();
-  
+    omega_wavepackets[i]->zero_coriolis_variables();
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_coriolis_on_same_device(const double dt)
+{
+  setup_device();
+  const int n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) {
     for(int j = 0; j < n_omegas; j++) {
       omega_wavepackets[i]->evolution_with_coriolis(dt, omega_wavepackets[j]->omega,
-						    coriolis_matrices_dev,
 						    omega_wavepackets[j]->legendre_psi_dev);
     }
   }
-  
+}
+
+void OmegaWavepacketsOnSingleDevice::evolution_with_coriolis(const double dt, const int omega1,
+							     const Complex *legendre_psi_omega1,
+							     cudaStream_t *stream)
+{
+  setup_device();
+  const int n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++)
+    omega_wavepackets[i]->evolution_with_coriolis(dt, omega1, legendre_psi_omega1, stream);
+}
+
+void OmegaWavepacketsOnSingleDevice::update_evolution_with_coriolis()
+{
+  setup_device();
+  const int n_omegas = omega_wavepackets.size();
   for(int i = 0; i < n_omegas; i++) 
     omega_wavepackets[i]->update_evolution_with_coriolis();
 }
 
 void OmegaWavepacketsOnSingleDevice::calculate_coriolis_energy_for_legendre_psi()
 {
+  setup_device();
   const int n_omegas = omega_wavepackets.size();
-  
-  for(int i = 0; i < n_omegas; i++) 
-    omega_wavepackets[i]->_coriolis_energy = 0.0;
-  
   for(int i = 0; i < n_omegas; i++) {
     const int &omega_i = omega_wavepackets[i]->omega;
     for(int j = i; j < n_omegas; j++) {
       const int &omega_j = omega_wavepackets[j]->omega;
       if(omega_i == omega_j || omega_i+1 == omega_j || omega_i-1 == omega_j) {
 	omega_wavepackets[i]->calculate_coriolis_energy_for_legendre_psi(omega_j, 
-									 coriolis_matrices_dev,
 									 omega_wavepackets[j]->legendre_psi_dev);
 	
       }
@@ -468,3 +529,29 @@ void OmegaWavepacketsOnSingleDevice::calculate_coriolis_energy_for_legendre_psi(
   }
 }
 
+void OmegaWavepacketsOnSingleDevice::calculate_coriolis_energy_for_legendre_psi(const int omega_j,
+										const Complex *legendre_psi_omega_j,
+										cudaStream_t *stream)
+{
+  setup_device();
+  const int n_omegas = omega_wavepackets.size();
+  for(int i = 0; i < n_omegas; i++) {
+    const int &omega_i = omega_wavepackets[i]->omega;
+    if(omega_i == omega_j || omega_i+1 == omega_j || omega_i-1 == omega_j)
+      omega_wavepackets[i]->calculate_coriolis_energy_for_legendre_psi(omega_j, legendre_psi_omega_j,
+								       stream);
+  }
+}
+
+void OmegaWavepacketsOnSingleDevice::zero_work_dev_2(cudaStream_t *stream)
+{
+  setup_device();
+  insist(work_dev_2);
+  const int &n1 = MatlabData::r1()->n; 
+  const int &n2 = MatlabData::r2()->n;
+  const int &n_theta = MatlabData::theta()->n; 
+  if(stream)
+    checkCudaErrors(cudaMemsetAsync(work_dev_2, 0, n1*n2*n_theta*sizeof(Complex), *stream));
+  else
+    checkCudaErrors(cudaMemset(work_dev_2, 0, n1*n2*n_theta*sizeof(Complex)));
+}

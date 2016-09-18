@@ -19,6 +19,7 @@ OmegaWavepacket::OmegaWavepacket(const int &omega_,
 				 const RMat &associated_legendres_,
 				 Complex *psi_, 
 				 const double *pot_dev_,
+				 double * &coriolis_matrices_dev_,
 				 cublasHandle_t &cublas_handle_,
 				 cufftHandle &cufft_plan_for_legendre_psi_,
 				 Complex * &work_dev_) :
@@ -30,7 +31,9 @@ OmegaWavepacket::OmegaWavepacket(const int &omega_,
   r2(*MatlabData::r2()),
   theta(*MatlabData::theta()),
   psi(psi_), 
-  pot_dev(pot_dev_), psi_dev(0),
+  pot_dev(pot_dev_), 
+  coriolis_matrices_dev(coriolis_matrices_dev_),
+  psi_dev(0),
   legendre_psi_dev(0), associated_legendres_dev(0), 
   weighted_associated_legendres_dev(0),
   cublas_handle(cublas_handle_),
@@ -52,6 +55,7 @@ OmegaWavepacket::~OmegaWavepacket()
   std::cout << " Destruct OmegaWavepacket: omega = " << omega << std::endl;
   psi = 0;
   pot_dev = 0;
+  coriolis_matrices_dev = 0;
   
   _CUDA_FREE_(psi_dev);
   _CUDA_FREE_(legendre_psi_dev);
@@ -146,8 +150,8 @@ void OmegaWavepacket::setup_associated_legendres()
   
   const size_t size = n_legs*n_theta;
   checkCudaErrors(cudaMalloc(&associated_legendres_dev, size*sizeof(Complex)));
-  checkCudaErrors(cudaMemcpy(associated_legendres_dev, (const Complex *) p_complex,
-			     size*sizeof(Complex), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpyAsync(associated_legendres_dev, (const Complex *) p_complex,
+				  size*sizeof(Complex), cudaMemcpyHostToDevice));
 }
 
 void OmegaWavepacket::setup_weighted_associated_legendres()
@@ -171,8 +175,9 @@ void OmegaWavepacket::setup_weighted_associated_legendres()
   
   const size_t size = n_theta*n_legs;
   checkCudaErrors(cudaMalloc(&weighted_associated_legendres_dev, size*sizeof(Complex)));
-  checkCudaErrors(cudaMemcpy(weighted_associated_legendres_dev, (const Complex *) wp_complex,
-			     size*sizeof(Complex), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpyAsync(weighted_associated_legendres_dev, 
+				  (const Complex *) wp_complex,
+				  size*sizeof(Complex), cudaMemcpyHostToDevice));
 }
 
 void OmegaWavepacket::setup_legendre_psi()
@@ -284,8 +289,8 @@ void OmegaWavepacket::copy_psi_from_host_to_device()
     checkCudaErrors(cudaMalloc(&psi_dev, n1*n2*n_theta*sizeof(Complex)));
   insist(psi_dev);
   
-  checkCudaErrors(cudaMemcpy(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), 
-			     cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpyAsync(psi_dev, psi, n1*n2*n_theta*sizeof(Complex), 
+				  cudaMemcpyHostToDevice));
 }
 
 void OmegaWavepacket::calculate_wavepacket_module_for_legendre_psi()
@@ -424,10 +429,11 @@ void OmegaWavepacket::calculate_rotational_energy_for_legendre_psi()
 
 void OmegaWavepacket::evolution_with_coriolis(const double dt, 
 					      const int l, const int omega1,
-					      const double *coriolis_matrices_dev,
 					      const Complex *legendre_psi_omega1,
 					      cudaStream_t *stream)
 {
+  insist(coriolis_matrices_dev);
+  
   const int &n1 = r1.n;
   const int &n2 = r2.n;
   
@@ -442,36 +448,32 @@ void OmegaWavepacket::evolution_with_coriolis(const double dt,
   const int n_threads = _NTHREADS_;
   const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2);
   
-  _evolution_with_coriolis_<<<n_blocks, n_threads, n1*sizeof(Complex)>>>
-    (legendre_psi_dev_, n1, n2, e, v, n, 
-     omega-omega_min, omega1-omega_min, 
-     dt, legendre_psi_omega1);
+  if(stream) {
+    _evolution_with_coriolis_<<<n_blocks, n_threads, n1*sizeof(Complex), *stream>>>
+      (legendre_psi_dev_, n1, n2, e, v, n, 
+       omega-omega_min, omega1-omega_min, 
+       dt, legendre_psi_omega1);
+  } else {
+    _evolution_with_coriolis_<<<n_blocks, n_threads, n1*sizeof(Complex)>>>
+      (legendre_psi_dev_, n1, n2, e, v, n, 
+       omega-omega_min, omega1-omega_min, 
+       dt, legendre_psi_omega1);
+  }
 }
 
 void OmegaWavepacket::evolution_with_coriolis(const double dt, const int omega1,
-					      const double *coriolis_matrices_dev,
-					      const Complex *legendre_psi_omega1)
+					      const Complex *legendre_psi_omega1,
+					      cudaStream_t *stream)
 {
   const int &n1 = r1.n;
   const int &n2 = r2.n;
-
+  
   for(int l = 0; l < l_max+1; l++) {
     
     if(coriolis_matrices[l].l == -1) continue;
     
-    evolution_with_coriolis(dt, l, omega1, 
-			    coriolis_matrices_dev,
-			    legendre_psi_omega1 + l*n1*n2);
+    evolution_with_coriolis(dt, l, omega1, legendre_psi_omega1+l*n1*n2, stream);
   }
-}
-
-void OmegaWavepacket::zero_psi_dev()
-{
-  const int &n1 = r1.n;
-  const int &n2 = r2.n;
-  const int &n_theta = theta.n;
-  const size_t size = n1*n2*n_theta;
-  checkCudaErrors(cudaMemset(psi_dev, 0, size*sizeof(Complex)));
 }
 
 void OmegaWavepacket::update_evolution_with_coriolis()
@@ -486,47 +488,6 @@ void OmegaWavepacket::update_evolution_with_coriolis()
 			     cudaMemcpyDeviceToDevice));
 }
 
-void OmegaWavepacket::calculate_coriolis_energy_for_legendre_psi(const int omega1,
-								 const double *coriolis_matrices_dev,
-								 const Complex *legendre_psi_omega1)
-{
-  const int &n1 = r1.n;
-  const int &n2 = r2.n;
-  
-  insist(work_dev);
-  Complex *psi_tmp = work_dev;
-  
-  const int n_threads = _NTHREADS_;
-  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2); 
- 
-  _coriolis_energy = 0.0;
-  
-  for(int l = 0; l < l_max+1; l++) {
-    
-    if(coriolis_matrices[l].l == -1) continue;
-    
-    const int n = coriolis_matrices[l].omega_max - coriolis_matrices[l].omega_min + 1;
-    const double *e = coriolis_matrices_dev + coriolis_matrices[l].offset;
-    const double *v = e + n;
-
-    const int &omega_min = coriolis_matrices[l].omega_min;
-    
-    _coriolis_matrices_production_<<<n_blocks, n_threads, n1*sizeof(double)>>>
-      (psi_tmp, legendre_psi_omega1+l*n1*n2, n1, n2, e, v, n, 
-       omega-omega_min, omega1-omega_min);
-    
-    Complex dot(0.0, 0.0);
-    insist(cublasZdotc(cublas_handle, n1*n2, 
-		       (const cuDoubleComplex *) legendre_psi_dev+l*n1*n2, 1, 
-		       (const cuDoubleComplex *) psi_tmp, 1, 
-		       (cuDoubleComplex *) &dot) == CUBLAS_STATUS_SUCCESS);
-    
-    if(omega != omega1) dot *= 2;
-
-    _coriolis_energy += dot.real()*r1.dr*r2.dr;
-  }
-}
-
 void OmegaWavepacket::dump_wavepacket()
 {
   const int &n1 = r1.n;
@@ -539,3 +500,65 @@ void OmegaWavepacket::dump_wavepacket()
   _dump_wavepacket_<<<n_blocks, n_threads>>>(psi_dev, n1, n2, n_theta);
 }
 
+void OmegaWavepacket::calculate_coriolis_energy_for_legendre_psi(const int omega1,
+								 const Complex *legendre_psi_omega1,
+								 cudaStream_t *stream)
+{
+  if(omega > omega1) return;
+
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  
+  insist(work_dev);
+  Complex *psi_tmp = work_dev;
+  
+  const int n_threads = _NTHREADS_;
+  const int n_blocks = cudaUtils::number_of_blocks(n_threads, n1*n2); 
+  
+  if(stream) insist(cublasSetStream(cublas_handle, *stream) == CUBLAS_STATUS_SUCCESS);
+  
+  for(int l = 0; l < l_max+1; l++) {
+    
+    if(coriolis_matrices[l].l == -1) continue;
+    
+    const int n = coriolis_matrices[l].omega_max - coriolis_matrices[l].omega_min + 1;
+    const double *e = coriolis_matrices_dev + coriolis_matrices[l].offset;
+    const double *v = e + n;
+    
+    const int &omega_min = coriolis_matrices[l].omega_min;
+    
+    if(stream) {
+      _coriolis_matrices_production_<<<n_blocks, n_threads, n1*sizeof(double), *stream>>>
+	(psi_tmp, legendre_psi_omega1+l*n1*n2, n1, n2, e, v, n, 
+	 omega-omega_min, omega1-omega_min);
+    } else {
+      _coriolis_matrices_production_<<<n_blocks, n_threads, n1*sizeof(double)>>>
+	(psi_tmp, legendre_psi_omega1+l*n1*n2, n1, n2, e, v, n, 
+	 omega-omega_min, omega1-omega_min);
+    }
+
+    Complex dot(0.0, 0.0);
+    
+    insist(cublasZdotc(cublas_handle, n1*n2, 
+		       (const cuDoubleComplex *) legendre_psi_dev+l*n1*n2, 1, 
+		       (const cuDoubleComplex *) psi_tmp, 1, 
+		       (cuDoubleComplex *) &dot) == CUBLAS_STATUS_SUCCESS);
+    
+    if(omega != omega1) dot *= 2;
+    
+    _coriolis_energy += dot.real()*r1.dr*r2.dr;
+  }
+
+  if(stream) insist(cublasSetStream(cublas_handle, NULL) == CUBLAS_STATUS_SUCCESS);
+}
+
+void OmegaWavepacket::zero_coriolis_variables()
+{
+  const int &n1 = r1.n;
+  const int &n2 = r2.n;
+  const int &n_theta = theta.n;
+  const size_t size = n1*n2*n_theta;
+  checkCudaErrors(cudaMemset(psi_dev, 0, size*sizeof(Complex)));
+  
+  _coriolis_energy = 0.0;
+}

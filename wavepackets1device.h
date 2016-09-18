@@ -8,6 +8,8 @@
 
 class OmegaWavepacketsOnSingleDevice
 {
+  friend class CudaOpenMPQMMD;
+
 public:
   OmegaWavepacketsOnSingleDevice(const int device_index,
 				 const int omega_start_index,
@@ -15,6 +17,8 @@ public:
 				 const Vec<CoriolisMatrixAux> &coriolis_matrices);
   
   ~OmegaWavepacketsOnSingleDevice();
+
+private:
   
   Vec<OmegaWavepacket *> omega_wavepackets;
   
@@ -41,13 +45,18 @@ public:
 
   void copy_coriolis_matrices_to_device(const double *c, const int s);
 
-  void setup_constant_memory_on_device(); //const double time_step);
+  void setup_constant_memory_on_device(); 
 
   void evolution_test(const int step, const double dt);
 
   void test_coriolis_matrices() const;
 
   void dump_wavepacket();
+
+  void print_energies(const int print=0);
+
+  void zero_coriolis_variables();
+  void zero_work_dev_2(cudaStream_t *stream = 0);
 
 private:
 
@@ -63,6 +72,7 @@ private:
   double *pot_dev;
   Complex *work_dev;
   double *coriolis_matrices_dev;
+  Complex *work_dev_2;
 
   cublasHandle_t cublas_handle;
   int has_cublas_handle;
@@ -88,6 +98,20 @@ private:
   void evolution_with_kinetic(const double dt);
   void evolution_with_rotational(const double dt);
   void evolution_with_coriolis(const double dt);
+
+  void evolution_with_coriolis_on_same_device(const double dt);
+  
+  void evolution_with_coriolis(const double dt, const int omega1,
+			       const Complex *legendre_psi_omega1,
+			       cudaStream_t *stream = 0);
+  
+  void calculate_coriolis_energy_for_legendre_psi(const int omega1,
+						  const Complex *legendre_psi_omega1,
+						  cudaStream_t *stream = 0);
+
+  void update_evolution_with_coriolis();
+
+  void setup_work_dev_2();
 };
 
 #endif /* WAVEPACKETS_ON_SINGLE_DEVICE */

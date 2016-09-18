@@ -47,7 +47,8 @@ LIBS = -lifcoremt -lgomp -L$(CUDA_LIB) -lcufft -lcublas -lcudart -lmkl_rt
 MEXA64Files = $(O)/cudaOpenMPEvolution.mexa64
 
 CUDAObjs = $(O)/cudaTest.o  $(O)/simpleP2P.o  $(O)/omegawavepacket.o  \
-	$(O)/cudaOpenMP2.o  $(O)/wavepackets1device.o
+	$(O)/cudaOpenMP2.o  $(O)/wavepackets1device.o \
+	$(O)/CoriolisP2P.o  $(O)/CoriolisP2PAsyncEvent.o
 
 CUDALinkObj = $(O)/cudalink.o
 
@@ -55,7 +56,7 @@ OBJS = $(O)/cudaOpenMPEvolution.o \
 	$(O)/cudaUtils.o $(O)/matlabUtils.o  $(O)/matlabStructures.o  \
 	$(O)/matlabStructuresio.o  $(O)/rmatalgo.o  $(O)/rmato.o  \
 	$(O)/die.o  $(O)/indent.o  $(O)/out.o \
-	$(O)/cudaOpenMP.o  $(O)/CoriolisMatrix.o \
+	$(O)/CoriolisMatrix.o \
 	$(O)/wave2matlab.o $(O)/matlabData.o \
 	$(CUDAObjs) $(CUDALinkObj)
 

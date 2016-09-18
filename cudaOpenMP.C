@@ -1,6 +1,8 @@
 
 #include "cudaOpenMP.h"
 
+#if 0
+
 CudaOpenMPQMMD::CudaOpenMPQMMD() :
   _n_gpus(0)
 {
@@ -15,3 +17,4 @@ CudaOpenMPQMMD::~CudaOpenMPQMMD()
   reset_devices();
 }
 
+#endif

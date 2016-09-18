@@ -20,7 +20,7 @@ setenv('HSW_DATA_DIR', ...
 global H2eV 
 global FH2Data
 
-theta.n = int32(220);
+theta.n = int32(232);
 [ theta.x, theta.w ] = GaussLegendre2(theta.n);
 
 % J = 0; p = 0; M = 0; % Omegas = [ 0 ]
@@ -30,9 +30,13 @@ theta.n = int32(220);
 % J = 2; p = 1; M = 0; % OMegas = [ 1 2 ]
 % J = 3; p = 1; M = 0; % Omegas = [ 0 1 2 3 ]
 % J = 3; p = 0; M = 0; % Omegas = [ 1 2 3 ]
+% J = 4; p = 1; M = 0; % [ 1 2 3 4]
 J = 5; p = 0; M = 0; % Omegas = [ 1 2 3 4 5 ]
+% J = 6; p = 1; M = 0; % Omegas = [ 1 2 3 4 5 6 ]
+% J = 8; p = 1; M = 0; % Omegas = [ 1 2 3 4 5 6 7 8 ]
+%  J = 32; p = 1; M = 0;
 
-LMax = 180;
+LMax = 200;
 
 Omegas = OmegaList(J, p, LMax)
 
@@ -52,8 +56,8 @@ OmegaStates.omegas = int32(Omegas);
 OmegaStates.n_omegas_max = int32(numel(Omegas));
 OmegaStates.associated_legendres = P;
 
-jRot = 10;
-nVib = 3;
+jRot = 8;
+nVib = 2;
 
 H2eV = 27.21138505;
 
@@ -68,13 +72,13 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(50000);
+time.total_steps = int32(200);
 time.time_step = 1.0;
 time.steps = int32(0);
 
 % r1: R
 
-r1.n = int32(256);
+r1.n = int32(512);
 r1.r = linspace(0.01, 14.0, r1.n);
 r1.left = r1.r(1);
 r1.dr = r1.r(2) - r1.r(1);
@@ -84,7 +88,7 @@ r1.mass = masses(1)*(masses(2)+masses(3))/(masses(1)+masses(2)+ ...
 %r1.dump_xd = 12.0;
 
 r1.r0 = 8.0;
-r1.k0 = 6.0; %0.2;
+r1.k0 = 1.0; %0.2;
 r1.delta = 0.2;
 
 eGT = 1/(2*r1.mass)*(r1.k0^2 + 1/(2*r1.delta^2))*H2eV;
@@ -97,7 +101,7 @@ dump1.dump = WoodsSaxon(dump1.Cd, dump1.xd, r1.r);
 % r2: r
 
 %r2.n = int32(1024);
-r2.n = int32(256);
+r2.n = int32(512);
 r2.r = linspace(0.2, 12.0, r2.n);
 r2.left = r2.r(1);
 r2.dr = r2.r(2) - r2.r(1);
@@ -148,6 +152,7 @@ options.wave_to_matlab = 'FH2Matlab.m';
 options.CRPMatFile = sprintf('CRPMat-j%d-v%d.mat', jRot, nVib);
 options.steps_to_copy_psi_from_device_to_host = int32(20);
 options.plot = true;
+options.use_p2p_async=int32(2);
 
 % setup potential energy surface and initial wavepacket
 fprintf(' Setup Potential energy surface\n');

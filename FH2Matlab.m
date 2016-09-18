@@ -17,7 +17,7 @@ end
 
 if mod(FH2Data.time.steps, FH2Data.options.steps_to_copy_psi_from_device_to_host) == 0
   PlotPotWave(FH2Data.r1, FH2Data.r2, FH2Data.pot, ...
-	      FH2Data.OmegaStates.wave_packets(:,:,:,4));
+	      FH2Data.OmegaStates.wave_packets(:,:,:,2));
 end
 
 return

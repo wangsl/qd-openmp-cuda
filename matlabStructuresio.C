@@ -1,5 +1,5 @@
 
-/* created at: 2016-08-31 18:33:39 */
+/* created at: 2016-09-16 14:24:20 */
 
 #include <iostream>
 using namespace std;
@@ -74,6 +74,7 @@ void Options::write_fields(ostream &s) const
   if (test_name)
     s << Indent() << "test_name " << test_name << "\n";
   s << Indent() << "steps_to_copy_psi_from_device_to_host " << steps_to_copy_psi_from_device_to_host << "\n";
+  s << Indent() << "use_p2p_async " << use_p2p_async << "\n";
 }
 
 ostream & operator <<(ostream &s, const CummulativeReactionProbabilities &c)
