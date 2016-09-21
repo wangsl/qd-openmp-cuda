@@ -30,8 +30,8 @@ theta.n = int32(232);
 % J = 2; p = 1; M = 0; % OMegas = [ 1 2 ]
 % J = 3; p = 1; M = 0; % Omegas = [ 0 1 2 3 ]
 % J = 3; p = 0; M = 0; % Omegas = [ 1 2 3 ]
-% J = 4; p = 1; M = 0; % [ 1 2 3 4]
-J = 5; p = 0; M = 0; % Omegas = [ 1 2 3 4 5 ]
+J = 4; p = 1; M = 0; % [ 1 2 3 4]
+% J = 5; p = 0; M = 0; % Omegas = [ 1 2 3 4 5 ]
 % J = 6; p = 1; M = 0; % Omegas = [ 1 2 3 4 5 6 ]
 % J = 8; p = 1; M = 0; % Omegas = [ 1 2 3 4 5 6 7 8 ]
 %  J = 32; p = 1; M = 0;
@@ -72,13 +72,13 @@ masses = masses*MassAU;
 
 % time
 
-time.total_steps = int32(200);
+time.total_steps = int32(500000);
 time.time_step = 1.0;
 time.steps = int32(0);
 
 % r1: R
 
-r1.n = int32(512);
+r1.n = int32(600);
 r1.r = linspace(0.01, 14.0, r1.n);
 r1.left = r1.r(1);
 r1.dr = r1.r(2) - r1.r(1);
@@ -148,11 +148,11 @@ theta.associated_legendre = theta.associated_legendre';
 
 % options
 
-options.wave_to_matlab = 'FH2Matlab.m';
+%options.wave_to_matlab = 'FH2Matlab.m';
 options.CRPMatFile = sprintf('CRPMat-j%d-v%d.mat', jRot, nVib);
 options.steps_to_copy_psi_from_device_to_host = int32(20);
 options.plot = true;
-options.use_p2p_async=int32(2);
+options.use_p2p_async=int32(3);
 
 % setup potential energy surface and initial wavepacket
 fprintf(' Setup Potential energy surface\n');

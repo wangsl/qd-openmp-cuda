@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <helper_cuda.h>
+#include <cuda_profiler_api.h>
 
 #include "cudaUtils.h"
 #include "cudaOpenMP.h"
@@ -20,7 +21,9 @@ inline static void divide_into_chunks(const int n, const int m, int *chunks)
 }
 
 CudaOpenMPQMMD::CudaOpenMPQMMD() :
-  _n_gpus(0), streams(0), events(0)
+  _n_gpus(0), 
+  streams(0), streams_p2p(0), streams_energy(0),
+  events(0)
 {
   setup_n_gpus();
   setup_wavepackets_on_single_device();
@@ -329,6 +332,8 @@ void CudaOpenMPQMMD::test_multiple_cards()
   const double &dt = MatlabData::time()->time_step;
 
   omp_set_num_threads(n_gpus());
+
+  checkCudaErrors(cudaProfilerStart());
   
   for(int L = 0; L < total_steps; L++) {
     
@@ -380,10 +385,15 @@ void CudaOpenMPQMMD::test_multiple_cards()
 
     steps++;
   }
+  
+  checkCudaErrors(cudaProfilerStop());
 }
 
 void CudaOpenMPQMMD::evolution_with_coriolis(const double dt, const int calculate_energy)
 {
+
+  //evolution_with_coriolis_2(dt, calculate_energy);  return;
+
 #pragma omp parallel for default(shared)
   for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
     
@@ -400,6 +410,10 @@ void CudaOpenMPQMMD::evolution_with_coriolis(const double dt, const int calculat
       evolution_with_coriolis_with_p2p_async(dt, calculate_energy);
     } else if(MatlabData::options()->use_p2p_async == 2) {
       evolution_with_coriolis_with_p2p_async_and_events(dt, calculate_energy);
+    } else if(MatlabData::options()->use_p2p_async == 3) {
+      evolution_with_coriolis_with_p2p_async_and_events_2(dt, calculate_energy);
+    } else if(MatlabData::options()->use_p2p_async == 4) {
+      evolution_with_coriolis_with_p2p_async_and_events_3(dt, calculate_energy);
     } else {
       evolution_with_coriolis_with_p2p(dt, calculate_energy);
     }
@@ -470,9 +484,18 @@ void CudaOpenMPQMMD::setup_streams_and_events(const int setup_streams, const int
   if(!streams && setup_streams) {
     streams = (cudaStream_t *) malloc(n_gpus()*sizeof(cudaStream_t));
     insist(streams);
+    
+    streams_p2p = (cudaStream_t *) malloc(n_gpus()*sizeof(cudaStream_t));
+    insist(streams_p2p);
+
+    streams_energy = (cudaStream_t *) malloc(n_gpus()*sizeof(cudaStream_t));
+    insist(streams_energy);
+    
     for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
       checkCudaErrors(cudaSetDevice(i_dev));
       checkCudaErrors(cudaStreamCreate(&streams[i_dev]));
+      checkCudaErrors(cudaStreamCreate(&streams_p2p[i_dev]));
+      checkCudaErrors(cudaStreamCreate(&streams_energy[i_dev]));
     }
   }
   
@@ -495,9 +518,13 @@ void CudaOpenMPQMMD::destroy_streams_and_events()
   for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {
     checkCudaErrors(cudaSetDevice(i_dev));
     if(streams) checkCudaErrors(cudaStreamDestroy(streams[i_dev]));
+    if(streams_p2p) checkCudaErrors(cudaStreamDestroy(streams_p2p[i_dev]));
+    if(streams_energy) checkCudaErrors(cudaStreamDestroy(streams_energy[i_dev]));
     if(events) checkCudaErrors(cudaEventDestroy(events[i_dev]));
   }
   if(streams) { free(streams); streams = 0; }
+  if(streams_p2p) { free(streams_p2p); streams_p2p = 0; }
+  if(streams_energy) { free(streams_energy); streams_energy = 0; }
   if(events) { free(events); events = 0; }
   
   for(int i_dev = 0; i_dev < n_gpus(); i_dev++) {

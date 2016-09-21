@@ -33,6 +33,8 @@ private:
   Vec<CoriolisMatrixAux> coriolis_matrices;
   
   cudaStream_t *streams;
+  cudaStream_t *streams_p2p;
+  cudaStream_t *streams_energy;
   cudaEvent_t *events;
 
   // General device functions
@@ -56,10 +58,14 @@ private:
   void evolution_with_rotational(const double dt);
 
   void evolution_with_coriolis(const double dt, const int calculate_energy = 0);
+
+  void evolution_with_coriolis_2(const double dt, const int calculate_energy = 0);
   
   void evolution_with_coriolis_with_p2p(const double dt, const int calculate_energy = 0);
   void evolution_with_coriolis_with_p2p_async(const double dt, const int calculate_energy = 0);
   void evolution_with_coriolis_with_p2p_async_and_events(const double dt, const int calculate_energy = 0);
+  void evolution_with_coriolis_with_p2p_async_and_events_2(const double dt, const int calculate_energy = 0);
+  void evolution_with_coriolis_with_p2p_async_and_events_3(const double dt, const int calculate_energy = 0);
   
   void update_evolution_with_coriolis();
   

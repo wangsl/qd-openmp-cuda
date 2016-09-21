@@ -48,7 +48,8 @@ MEXA64Files = $(O)/cudaOpenMPEvolution.mexa64
 
 CUDAObjs = $(O)/cudaTest.o  $(O)/simpleP2P.o  $(O)/omegawavepacket.o  \
 	$(O)/cudaOpenMP2.o  $(O)/wavepackets1device.o \
-	$(O)/CoriolisP2P.o  $(O)/CoriolisP2PAsyncEvent.o
+	$(O)/CoriolisP2P.o  $(O)/CoriolisP2PAsyncEvent.o \
+	$(O)/CoriolisEvol.o
 
 CUDALinkObj = $(O)/cudalink.o
 
